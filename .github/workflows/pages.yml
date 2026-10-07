@@ -38,10 +38,12 @@ jobs:
       - name: 저장소 체크아웃
         uses: actions/checkout@v4
 
+      # ※ 최초 1회는 저장소 Settings > Pages 에서
+      #    Build and deployment > Source 를 "GitHub Actions" 로 직접 바꿔야 한다.
+      #    enablement: true 로 자동 생성을 시도하면 기본 GITHUB_TOKEN 권한으로는
+      #    "Resource not accessible by integration" 으로 실패한다.
       - name: Pages 설정
         uses: actions/configure-pages@v5
-        with:
-          enablement: true    # Pages 가 꺼져 있으면 자동으로 켠다
 
       - name: 정적 파일 업로드
         uses: actions/upload-pages-artifact@v3
