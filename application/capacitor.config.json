@@ -1,0 +1,11 @@
+{
+  "appId": "com.postureiq.app",
+  "appName": "PostureIQ",
+  "webDir": "src/main/resources/static",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

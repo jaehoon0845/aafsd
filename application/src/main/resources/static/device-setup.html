@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PostureIQ — 기기 및 사용자 설정</title>
+<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="/tailwind-config.js"></script>
+<script src="/js/vendor/capacitor.js"></script>
+<script src="/js/vendor/bluetooth-le.js"></script>
+<script src="/js/sensor-data.js" defer></script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        body {
+            background-color: #f9f9f9;
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-background">
+<!-- TopAppBar -->
+<header class="bg-white flex justify-between items-center w-full px-6 py-4 h-16 fixed top-0 z-50 border-b border-slate-100 shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
+<div class="flex items-center gap-3">
+<a href="/device.html" class="text-slate-400 hover:text-[#1A237E] -ml-2 p-1">
+<span class="material-symbols-outlined">arrow_back</span>
+</a>
+<div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden">
+<img alt="User profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjFC6pmb8PUhfUpk3HSu3AQdrP4rHa2PA6ohZtp0DL30bVHUMZtEz63Ln8cM_9FvQCtEWYKnY_p1PWVa3xEHgyE9jWo0epZLlDqsq4yryHdDT6QpvUNrR3t0AruppX3IBoGdsBsxnhDiSFIdxXN0vbXZEpdMkOaijU8ys_m8GYqkQM0gk3S9SD4ACY8h7L_0O7-PfIk8qTxasNsW-8ot0dh5-BF232EowyiE2CRSa1dyUo2-ej9rwWEhWDOWy-_mmpvdvIoQ0lUnzV"/>
+</div>
+<h1 class="text-[#1A237E] font-black tracking-tight font-['Lexend'] text-lg">PostureIQ</h1>
+</div>
+<div class="flex items-center">
+<button class="p-2 text-slate-400 hover:bg-slate-50 transition-colors rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-24 pb-32 px-gutter max-w-4xl mx-auto space-y-md">
+<!-- Screen Title -->
+<div class="px-2">
+<h2 class="font-headline-lg text-headline-lg text-primary">기기 및 사용자 설정</h2>
+<p class="font-body-md text-on-surface-variant">정확한 자세 분석을 위해 최신 정보를 유지하세요.</p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Connection Status Card (Left Sensor) -->
+<div class="md:col-span-6 bg-surface-container-lowest p-md rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] border border-slate-50">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2">
+<div class="bg-secondary-container/20 p-2 rounded-lg text-secondary">
+<span class="material-symbols-outlined">left_click</span>
+</div>
+<div>
+<span class="font-label-lg text-label-lg text-primary">왼쪽 센서 (L)</span>
+<div class="flex items-center gap-1.5">
+<div id="setup-L-dot" class="w-2 h-2 rounded-full bg-cyan-500"></div>
+<span id="setup-L-status" class="font-label-md text-label-md text-cyan-600">연결됨</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<span id="setup-L-battery" class="font-display-md text-display-md text-primary leading-none">78%</span>
+<p class="font-label-md text-label-md text-outline">배터리 잔량</p>
+</div>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div id="setup-L-bar" class="bg-secondary-fixed-dim h-full" style="width: 78%"></div>
+</div>
+</div>
+<!-- Connection Status Card (Right Sensor) -->
+<div class="md:col-span-6 bg-surface-container-lowest p-md rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] border border-slate-50">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2">
+<div class="bg-secondary-container/20 p-2 rounded-lg text-secondary">
+<span class="material-symbols-outlined">right_click</span>
+</div>
+<div>
+<span class="font-label-lg text-label-lg text-primary">오른쪽 센서 (R)</span>
+<div class="flex items-center gap-1.5">
+<div id="setup-R-dot" class="w-2 h-2 rounded-full bg-cyan-500"></div>
+<span id="setup-R-status" class="font-label-md text-label-md text-cyan-600">연결됨</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<span id="setup-R-battery" class="font-display-md text-display-md text-primary leading-none">52%</span>
+<p class="font-label-md text-label-md text-outline">배터리 잔량</p>
+</div>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div id="setup-R-bar" class="bg-secondary-fixed-dim h-full opacity-70" style="width: 52%"></div>
+</div>
+</div>
+<!-- Calibration Status (Large Card) -->
+<div class="md:col-span-8 bg-primary-container text-on-primary p-md rounded-xl shadow-xl relative overflow-hidden">
+<div class="relative z-10">
+<h3 class="font-headline-md text-headline-md mb-2">센서 캘리브레이션</h3>
+<p class="font-body-md text-white/80 mb-6 max-w-sm">분석 데이터의 정밀도를 위해 매주 1회 캘리브레이션을 권장합니다.</p>
+<div class="flex flex-wrap gap-3">
+<button id="calibrate-button" class="bg-secondary-container text-on-secondary-container font-label-lg px-6 py-3 rounded-lg flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-50">
+<span class="material-symbols-outlined">refresh</span>
+<span id="calibrate-button-text">지금 보정하기</span>
+                        </button>
+<div class="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span id="last-calibrated" class="font-label-md">마지막 보정: 2일 전</span>
+</div>
+</div>
+<p id="calibrate-feedback" class="mt-3 font-label-md text-white/80 hidden"></p>
+</div>
+<div class="absolute -right-10 -bottom-10 opacity-10">
+<span class="material-symbols-outlined text-[200px]">sensors</span>
+</div>
+</div>
+<!-- Analysis Visual Preview -->
+<div class="md:col-span-4 bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] overflow-hidden flex flex-col">
+<div class="p-4 border-b border-slate-50">
+<span class="font-label-lg text-primary">실시간 데이터 분석</span>
+</div>
+<div class="flex-grow min-h-[160px] relative">
+<img alt="Posture Analysis View" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7siMDW8EI5zYsIg2ruv4ij-BaHYnHqcxTAmFj-vvAal2R_vtYn6lplumBvhzGM0uZB82IpJ9bPe-1dhppKY2HgRVMaAw9pBkzWX0AhHZay0kxu_IH4m11YxdhKdTaLxxcyZ7mKDY5ultW0t-oH0odw-hv8z8SiTVHp3RZ5jnszFgpT7dn9Ixlxc1gVxD3x0txvguyJg_ab8pJf7H8iKDh26E0XszV7NddzuWQiz3nt2p8LJTZX23XH8M0q9HvZDSwBGE4KY00JVEU"/>
+</div>
+</div>
+<!-- Biometric Data Entry -->
+<div class="md:col-span-12 bg-surface-container-lowest p-md rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] border border-slate-50">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">person_pin</span>
+<h3 class="font-headline-md text-headline-md text-primary">생체 데이터 입력</h3>
+</div>
+<form class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="space-y-2">
+<label class="font-label-lg text-label-lg text-on-surface-variant block">신장 (cm)</label>
+<div class="relative">
+<input class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 font-body-md focus:border-secondary-fixed-dim focus:ring-1 focus:ring-secondary-fixed-dim outline-none transition-all" type="number" value="178"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-outline font-label-md">cm</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="font-label-lg text-label-lg text-on-surface-variant block">체중 (kg)</label>
+<div class="relative">
+<input class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 font-body-md focus:border-secondary-fixed-dim focus:ring-1 focus:ring-secondary-fixed-dim outline-none transition-all" type="number" value="74"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-outline font-label-md">kg</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="font-label-lg text-label-lg text-on-surface-variant block">발 사이즈 (mm)</label>
+<div class="relative">
+<select class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 font-body-md focus:border-secondary-fixed-dim focus:ring-1 focus:ring-secondary-fixed-dim outline-none appearance-none transition-all">
+<option>260</option>
+<option>265</option>
+<option selected="">270</option>
+<option>275</option>
+<option>280</option>
+</select>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+</form>
+<div class="mt-8 flex justify-end">
+<button class="bg-primary text-white font-label-lg px-10 py-4 rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-md">
+                        데이터 저장
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 h-20 pb-safe bg-white border-t border-slate-200 shadow-[0px_-4px_20px_rgba(26,35,126,0.05)] rounded-t-lg">
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/index.html">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/live.html">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Live</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/reports.html">
+<span class="material-symbols-outlined">insert_chart</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Reports</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-cyan-50 text-cyan-700 rounded-xl px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/device.html">
+<span class="material-symbols-outlined">settings_input_component</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Device</span>
+</a>
+</nav>
+
+<!-- ───── 인솔 연결 상태 + 캘리브레이션(0xA0F3) ───── -->
+<script>
+(function () {
+  document.addEventListener('DOMContentLoaded', () => {
+    const $ = (id) => document.getElementById(id);
+    const isBle = PostureIQ.getSourcePreference() === 'ble' && PostureIQ.isBluetoothAvailable();
+    const source = isBle ? new PostureIQ.BluetoothDataSource() : null;
+
+    function renderFoot(foot, state, battery) {
+      // state: 'mock' | 'connected' | 'connecting' | 'off'
+      const dot = $(`setup-${foot}-dot`), label = $(`setup-${foot}-status`);
+      const map = {
+        mock:       { dot: 'bg-cyan-500',  text: 'text-cyan-600',  label: 'Mock 데이터' },
+        connected:  { dot: 'bg-cyan-500',  text: 'text-cyan-600',  label: '연결됨' },
+        connecting: { dot: 'bg-amber-400', text: 'text-amber-600', label: '연결 중…' },
+        off:        { dot: 'bg-slate-300', text: 'text-slate-400', label: '연결 안 됨' },
+      }[state];
+      dot.className = `w-2 h-2 rounded-full ${map.dot}`;
+      label.className = `font-label-md text-label-md ${map.text}`;
+      label.textContent = map.label;
+      const demo = foot === 'L' ? 78 : 52;
+      const level = state === 'mock' ? demo : (typeof battery === 'number' ? battery : null);
+      $(`setup-${foot}-battery`).textContent = level === null ? '—' : `${level}%`;
+      $(`setup-${foot}-bar`).style.width = level === null ? '0%' : `${level}%`;
+    }
+
+    function renderFromSource() {
+      const st = source.getStatus();
+      for (const foot of ['L', 'R']) {
+        renderFoot(foot, st[foot].connected ? 'connected' : st[foot].connecting ? 'connecting' : 'off', st[foot].battery);
+      }
+    }
+
+    function feedback(text, isError = false) {
+      const el = $('calibrate-feedback');
+      el.textContent = text;
+      el.className = `mt-3 font-label-md ${isError ? 'text-amber-200' : 'text-white/80'}`;
+    }
+
+    if (source) {
+      renderFromSource();
+      source.on('connected',    () => renderFromSource());
+      source.on('disconnected', () => renderFromSource());
+      source.on('battery',      () => renderFromSource());
+      source.on('needs-pairing', () => {
+        renderFromSource();
+        feedback('연결된 인솔이 없습니다. 디바이스 화면에서 [새 장치 페어링] 을 먼저 하세요.', true);
+      });
+      source.on('error', (e) => { renderFromSource(); feedback(e.message, true); });
+      source.start();
+    } else {
+      renderFoot('L', 'mock'); renderFoot('R', 'mock');
+    }
+
+    // 지금 보정하기 -> calibrate 0x01 (로드셀 tare + 자기장 baseline 재측정)
+    $('calibrate-button').addEventListener('click', async () => {
+      const btn = $('calibrate-button');
+      btn.disabled = true;
+      $('calibrate-button-text').textContent = '보정 중…';
+      try {
+        if (source) {
+          const feet = await source.calibrate(0x01);
+          feedback(`영점 보정 명령 전송 완료 (${feet.join(', ')}). 발을 뗀 상태로 1초간 기다려 주세요.`);
+        } else {
+          await new Promise(r => setTimeout(r, 600));
+          feedback('Mock 모드: 실제 인솔이 연결되어 있지 않아 보정 명령은 보내지 않았습니다.');
+        }
+        $('last-calibrated').textContent = '마지막 보정: 방금 전';
+      } catch (err) {
+        feedback(`보정 실패: ${err.message || err}`, true);
+      } finally {
+        btn.disabled = false;
+        $('calibrate-button-text').textContent = '지금 보정하기';
+      }
+    });
+  });
+})();
+</script>
+</body></html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PostureIQ — 디바이스</title>
+<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="/tailwind-config.js"></script>
+<script src="/js/vendor/capacitor.js"></script>
+<script src="/js/vendor/bluetooth-le.js"></script>
+<script src="/js/sensor-data.js" defer></script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #f9f9f9;
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- Top AppBar -->
+<header class="bg-slate-50 sticky top-0 z-50 border-b border-slate-200 shadow-sm flex justify-between items-center w-full px-4 h-16">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden">
+<img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAl0CCPeNHJr4JljrcHcubgI4-23L7Q1pr5cEx1s96Q5fcY-yMBBzefm20IE1m1QoLwliRuZCuGFJjGUPJEotYTiwBS1NkoyfVMtnr5Re5hbkILn8w-Uym_aXkRXPGJE7AMkM07-S2MUHNx0LSMaEkW5RD5XFEahpMxYdtpcbMPzDcXtzG8Ke9QjLmTy1TtxFOE_-g1uBoFQP0O8vkJT2jdymABqZ_hpuX7Zui4SXn8noWbpbNJ6bXczC89BOqRTja_WOZXd2TMNWMh"/>
+</div>
+<h1 class="font-['Lexend'] font-extrabold tracking-tight text-[#1A237E] text-xl">PostureIQ</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors active:opacity-70 text-[#1A237E]">
+<span class="material-symbols-outlined">settings_bluetooth</span>
+</button>
+</header>
+<main class="max-w-md mx-auto px-gutter py-md space-y-md pb-32">
+<!-- Connectivity Section (Bento Style) -->
+<section class="grid grid-cols-2 gap-base">
+<div class="col-span-2">
+<h2 class="font-label-lg text-label-lg text-primary-container mb-sm">연결된 장치 상태</h2>
+</div>
+<!-- Left Insole Card -->
+<div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] border border-slate-100">
+<div class="flex justify-between items-start mb-md">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-slate-500">좌측 인솔</span>
+<span id="dev-L-name" class="font-headline-md text-headline-md text-primary">L-Sensor</span>
+</div>
+<span id="dev-L-icon" class="material-symbols-outlined text-secondary">bluetooth_connected</span>
+</div>
+<div class="space-y-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1 text-slate-600">
+<span class="material-symbols-outlined text-sm">battery_horiz_075</span>
+<span id="dev-L-battery" class="font-data-viz text-data-viz">78%</span>
+</div>
+<div id="dev-L-status-wrap" class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-sm">signal_cellular_alt</span>
+<span id="dev-L-status" class="font-data-viz text-data-viz">우수</span>
+</div>
+</div>
+<div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+<div id="dev-L-bar" class="h-full bg-secondary-container" style="width: 78%"></div>
+</div>
+</div>
+</div>
+<!-- Right Insole Card -->
+<div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] border border-slate-100">
+<div class="flex justify-between items-start mb-md">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-slate-500">우측 인솔</span>
+<span id="dev-R-name" class="font-headline-md text-headline-md text-primary">R-Sensor</span>
+</div>
+<span id="dev-R-icon" class="material-symbols-outlined text-secondary">bluetooth_connected</span>
+</div>
+<div class="space-y-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1 text-slate-600">
+<span class="material-symbols-outlined text-sm">battery_horiz_050</span>
+<span id="dev-R-battery" class="font-data-viz text-data-viz">52%</span>
+</div>
+<div id="dev-R-status-wrap" class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-sm">signal_cellular_alt</span>
+<span id="dev-R-status" class="font-data-viz text-data-viz">안정</span>
+</div>
+</div>
+<div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+<div id="dev-R-bar" class="h-full bg-secondary-container" style="width: 52%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Connection Actions -->
+<section class="bg-white p-md rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] space-y-sm">
+<button id="pair-button" class="w-full flex items-center justify-between p-sm border border-outline-variant rounded-lg hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-sm">
+<span id="pair-icon" class="material-symbols-outlined text-secondary">sync</span>
+<span id="pair-button-text" class="font-label-lg text-label-lg">새 장치 페어링</span>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</button>
+<p id="pair-status" class="font-label-md text-label-md text-slate-500 px-sm hidden"></p>
+<div id="scan-report" class="hidden px-sm">
+<p class="font-label-md text-label-md text-slate-500 mb-1">스캔에서 잡힌 주변 기기 (진단용)</p>
+<ul id="scan-list" class="text-[11px] leading-relaxed text-slate-500 font-mono max-h-40 overflow-y-auto border border-slate-100 rounded p-2 bg-slate-50"></ul>
+</div>
+<div class="flex items-center justify-between p-sm border border-outline-variant rounded-lg">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">database</span>
+<span class="font-label-lg text-label-lg">데이터 소스</span>
+</div>
+<div class="flex gap-1">
+<button id="source-mock" class="px-3 py-1 rounded-full font-label-md text-label-md border border-outline-variant text-slate-500">Mock</button>
+<button id="source-ble" class="px-3 py-1 rounded-full font-label-md text-label-md border border-outline-variant text-slate-500">BLE 인솔</button>
+</div>
+</div>
+<button id="forget-button" class="w-full flex items-center justify-between p-sm border border-outline-variant rounded-lg hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-slate-400">bluetooth_disabled</span>
+<span class="font-label-lg text-label-lg text-slate-600">저장된 인솔 지우기</span>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</button>
+<button class="w-full flex items-center justify-between p-sm border border-outline-variant rounded-lg hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">wifi</span>
+<span class="font-label-lg text-label-lg">Wi-Fi 동기화 설정</span>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</button>
+</section>
+<!-- User Profile Calibration -->
+<section class="space-y-sm">
+<h2 class="font-label-lg text-label-lg text-primary-container">사용자 프로필 및 캘리브레이션</h2>
+<div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] grid grid-cols-3 gap-md">
+<div class="flex flex-col items-center gap-xs">
+<span class="font-label-md text-label-md text-slate-500">신장</span>
+<div class="font-headline-md text-headline-md text-primary">182<span class="text-sm font-normal ml-0.5">cm</span></div>
+</div>
+<div class="flex flex-col items-center gap-xs border-x border-slate-100">
+<span class="font-label-md text-label-md text-slate-500">체중</span>
+<div class="font-headline-md text-headline-md text-primary">75<span class="text-sm font-normal ml-0.5">kg</span></div>
+</div>
+<div class="flex flex-col items-center gap-xs">
+<span class="font-label-md text-label-md text-slate-500">발 사이즈</span>
+<div class="font-headline-md text-headline-md text-primary">275<span class="text-sm font-normal ml-0.5">mm</span></div>
+</div>
+<div class="col-span-3 pt-sm border-t border-slate-100">
+<a href="/device-setup.html" class="w-full py-sm bg-primary-container text-white font-label-lg rounded-lg hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span>프로필 및 캘리브레이션 설정</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</section>
+<!-- App Settings -->
+<section class="space-y-sm">
+<h2 class="font-label-lg text-label-lg text-primary-container">알림 및 앱 설정</h2>
+<div class="bg-white rounded-xl shadow-[0px_4px_20px_rgba(26,35,126,0.05)] overflow-hidden">
+<div class="flex items-center justify-between p-md border-b border-slate-50">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg">자세 교정 알림</span>
+<span class="font-label-md text-label-md text-slate-500">불균형 감지 시 실시간 푸시 알림</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between p-md border-b border-slate-50">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg">목표 달성 알림</span>
+<span class="font-label-md text-label-md text-slate-500">일일 밸런스 목표 도달 시 알림</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between p-md">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg">배터리 부족 알림</span>
+<span class="font-label-md text-label-md text-slate-500">인솔 배터리가 15% 이하일 때 알림</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+</label>
+</div>
+</div>
+</section>
+<!-- Logout/Danger Area -->
+<section class="pt-sm">
+<button class="w-full py-sm border border-error/20 text-error font-label-lg rounded-lg hover:bg-error/5 transition-colors flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined text-sm">logout</span>
+                로그아웃
+            </button>
+</section>
+</main>
+<!-- Bottom NavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 h-20 pb-safe bg-white border-t border-slate-200 shadow-[0px_-4px_20px_rgba(26,35,126,0.05)] rounded-t-lg">
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/index.html">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/live.html">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Live</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/reports.html">
+<span class="material-symbols-outlined">insert_chart</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Reports</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-cyan-50 text-cyan-700 rounded-xl px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/device.html">
+<span class="material-symbols-outlined">settings_input_component</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Device</span>
+</a>
+</nav>
+
+<!-- ───── BLE 인솔 연결 상태 / 페어링 ───── -->
+<script>
+(function () {
+  document.addEventListener('DOMContentLoaded', () => {
+    const $ = (id) => document.getElementById(id);
+    const bleAvailable = PostureIQ.isBluetoothAvailable();
+    let source = null;           // BluetoothDataSource (BLE 모드일 때만 생성)
+
+    const ACTIVE   = 'px-3 py-1 rounded-full font-label-md text-label-md bg-primary-container text-white border border-primary-container';
+    const INACTIVE = 'px-3 py-1 rounded-full font-label-md text-label-md border border-outline-variant text-slate-500';
+
+    function renderSourceButtons() {
+      const ble = PostureIQ.getSourcePreference() === 'ble';
+      $('source-mock').className = ble ? INACTIVE : ACTIVE;
+      $('source-ble').className  = ble ? ACTIVE : INACTIVE;
+    }
+
+    // state: 'mock' | 'connected' | 'connecting' | 'saved' | 'none'
+    function renderFoot(foot, state, opts = {}) {
+      const paired = PostureIQ.getPairedDevices()[foot];
+      const name = opts.name || (paired && paired.name) || `PostureIQ-${foot}`;
+      const battery = typeof opts.battery === 'number' ? opts.battery : null;
+      const map = {
+        mock:       { icon: 'bluetooth_connected', color: 'text-secondary', label: 'Mock',        name: `${foot}-Sensor (mock)` },
+        connected:  { icon: 'bluetooth_connected', color: 'text-secondary', label: '연결됨',      name },
+        connecting: { icon: 'bluetooth_searching', color: 'text-amber-600', label: '연결 중…',    name },
+        saved:      { icon: 'bluetooth',           color: 'text-slate-400', label: '저장됨',      name },
+        none:       { icon: 'bluetooth_disabled',  color: 'text-slate-400', label: '미등록',      name: `${foot}-Sensor` },
+      }[state];
+      $(`dev-${foot}-name`).textContent = map.name;
+      $(`dev-${foot}-icon`).textContent = map.icon;
+      $(`dev-${foot}-icon`).className = `material-symbols-outlined ${map.color}`;
+      $(`dev-${foot}-status`).textContent = map.label;
+      $(`dev-${foot}-status-wrap`).className = `flex items-center gap-1 ${map.color}`;
+      if (state === 'mock') {
+        const demo = foot === 'L' ? 78 : 52;
+        $(`dev-${foot}-battery`).textContent = `${demo}%`;
+        $(`dev-${foot}-bar`).style.width = `${demo}%`;
+      } else {
+        $(`dev-${foot}-battery`).textContent = battery === null ? '—' : `${battery}%`;
+        $(`dev-${foot}-bar`).style.width = battery === null ? '0%' : `${battery}%`;
+      }
+    }
+
+    function renderFromSource() {
+      const st = source.getStatus();
+      for (const foot of ['L', 'R']) {
+        const s = st[foot];
+        const paired = PostureIQ.getPairedDevices()[foot];
+        renderFoot(foot, s.connected ? 'connected' : s.connecting ? 'connecting' : paired ? 'saved' : 'none',
+                   { name: s.name || (paired && paired.name), battery: s.battery });
+      }
+    }
+
+    function showPairStatus(text, tone = 'info') {
+      const el = $('pair-status');
+      el.textContent = text;
+      el.className = `font-label-md text-label-md px-sm whitespace-pre-line ${tone === 'error' ? 'text-error' : 'text-slate-500'}`;
+    }
+
+    // 스캔 진단 결과 표시 - 인솔을 못 찾을 때 원인을 눈으로 확인하기 위한 것
+    function showScanReport(seen) {
+      const box = $('scan-report'), list = $('scan-list');
+      if (!seen || seen.length === 0) { box.classList.add('hidden'); return; }
+      list.innerHTML = '';
+      seen.slice(0, 20).forEach(d => {
+        const li = document.createElement('li');
+        const uuids = (d.uuids && d.uuids.length) ? d.uuids.join(',') : '-';
+        li.textContent = `${d.name || '(이름없음)'} | ${d.rssi != null ? d.rssi + 'dBm' : '?'} | ${uuids}`;
+        list.appendChild(li);
+      });
+      box.classList.remove('hidden');
+    }
+
+    function attach(src) {
+      src.on('connected',     () => { renderFromSource(); showPairStatus('인솔이 연결되었습니다.'); });
+      src.on('disconnected',  () => renderFromSource());
+      src.on('battery',       () => renderFromSource());
+      src.on('scanning',      (e) => {
+        $('pair-button-text').textContent = e.active ? '인솔 검색 중… (최대 8초)' : '새 장치 페어링';
+        $('pair-icon').textContent = e.active ? 'bluetooth_searching' : 'sync';
+        $('pair-button').disabled = e.active;
+      });
+      src.on('needs-pairing', (e) => {
+        renderFromSource();
+        showPairStatus(e.reason === 'web-user-gesture-required'
+          ? '브라우저에서는 [새 장치 페어링] 을 눌러 인솔을 다시 선택해야 합니다.'
+          : '저장된 인솔이 없습니다. 인솔 전원을 켜고 [새 장치 페어링] 을 누르세요.');
+      });
+      src.on('scan-report',   (e) => showScanReport(e.seen));
+      src.on('error',         (e) => { renderFromSource(); showPairStatus(e.message, 'error'); showScanReport(src.lastScan); });
+    }
+
+    function ensureBleSource() {
+      if (source) return source;
+      source = new PostureIQ.BluetoothDataSource();
+      attach(source);
+      return source;
+    }
+
+    // ── 초기 렌더 ──
+    renderSourceButtons();
+    if (PostureIQ.getSourcePreference() === 'ble' && bleAvailable) {
+      ensureBleSource();
+      renderFromSource();
+      source.start();
+    } else if (PostureIQ.getSourcePreference() === 'ble') {
+      renderFoot('L', 'none'); renderFoot('R', 'none');
+      showPairStatus('이 브라우저는 Web Bluetooth 를 지원하지 않습니다. 안드로이드 앱 또는 Chrome 을 사용하세요.', 'error');
+    } else {
+      renderFoot('L', 'mock'); renderFoot('R', 'mock');
+    }
+
+    // ── 새 장치 페어링 ──
+    $('pair-button').addEventListener('click', async () => {
+      if (!bleAvailable) {
+        showPairStatus('이 브라우저는 Web Bluetooth 를 지원하지 않습니다. 안드로이드 앱 또는 Chrome 을 사용하세요.', 'error');
+        return;
+      }
+      const src = ensureBleSource();
+      showPairStatus(PostureIQ.isNativePlatform() ? 'PostureIQ-L / PostureIQ-R 를 검색합니다…' : '장치 선택 창에서 PostureIQ 인솔을 선택하세요.');
+      try {
+        const connected = await src.pair();     // 성공 시 데이터 소스 설정이 'ble' 로 저장됨
+        renderSourceButtons();
+        renderFromSource();
+        showPairStatus(`연결됨: ${connected.map(c => c.name).join(', ')}`);
+      } catch (err) {
+        showPairStatus(err.message || String(err), 'error');
+        showScanReport(src.lastScan);
+        renderFromSource();
+      }
+    });
+
+    // ── 데이터 소스 전환 ──
+    $('source-mock').addEventListener('click', () => { PostureIQ.setSourcePreference('mock'); location.reload(); });
+    $('source-ble').addEventListener('click', () => {
+      if (!bleAvailable) { showPairStatus('이 브라우저는 Web Bluetooth 를 지원하지 않습니다.', 'error'); return; }
+      PostureIQ.setSourcePreference('ble'); location.reload();
+    });
+
+    // ── 저장된 인솔 지우기 ──
+    $('forget-button').addEventListener('click', async () => {
+      if (source) await source.stop();
+      PostureIQ.forgetPairedDevices();
+      renderFoot('L', PostureIQ.getSourcePreference() === 'ble' ? 'none' : 'mock');
+      renderFoot('R', PostureIQ.getSourcePreference() === 'ble' ? 'none' : 'mock');
+      showPairStatus('저장된 인솔 정보를 지웠습니다. 다시 페어링하세요.');
+    });
+  });
+})();
+</script>
+</body></html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PostureIQ — 종합 분석 대시보드</title>
+<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="/tailwind-config.js"></script>
+<style>
+        body { font-family: 'Lexend', sans-serif; min-height: max(884px, 100dvh); }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="bg-white flex justify-between items-center w-full px-6 py-4 h-16 top-0 border-b border-slate-100 shadow-[0px_4px_20px_rgba(26,35,126,0.05)] sticky z-50">
+<div class="flex items-center gap-3">
+<a href="/index.html" class="text-slate-400 hover:text-[#1A237E] -ml-2 p-1">
+<span class="material-symbols-outlined">arrow_back</span>
+</a>
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-white overflow-hidden border border-primary-container/20">
+<img alt="Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvEUW3zie8E_63TZqlG7RO6Zou1LQjahSv54ITDQTRfGWV-GSTUSQpsaMc7ZKZgR_L9vkwhsUsqveitvQhMBbdpK3hvIP_xTC_2aqeLlKLRKA5D0XD7zG0xWb1ZfB7rocKXGRx2dXO4FMKGSSMd3wYPZlhDcB1Ncl8Hl9S461qUX40MNixXTOod7W9J-27AWisj4c8JGChZRKo-5J_e-t0QT97Y0hB4UNgW6OF5b6RATL15JlPLwDPoK_zJgczBZCEIcBpZpS3Jdwq"/>
+</div>
+<h1 class="text-[#1A237E] font-black tracking-tight font-['Lexend'] font-bold text-lg">PostureIQ</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-400 hover:bg-slate-50 transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-6 py-8">
+<!-- Dashboard Header -->
+<div class="mb-10">
+<h2 class="font-display-md text-display-md text-primary mb-2">분석 대시보드</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">실시간 자세 및 족저압 분석 보고서</p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-md">
+<!-- Balance Card -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-xl p-md shadow-[0px_4px_20px_rgba(26,35,126,0.05)] border border-slate-100">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-label-lg text-label-lg text-primary">좌우 밸런스 분석</h3>
+<span class="font-data-viz text-data-viz px-3 py-1 bg-secondary-container/20 text-secondary rounded-full">실시간 측정 중</span>
+</div>
+<div class="flex flex-col md:flex-row items-center justify-between gap-lg py-4">
+<div class="flex flex-col items-center">
+<span class="font-display-lg text-display-lg text-primary">51%</span>
+<span class="font-label-md text-label-md text-outline">LEFT (왼쪽)</span>
+</div>
+<div class="flex-1 w-full flex items-center gap-base">
+<div class="h-6 flex-1 bg-slate-100 rounded-full overflow-hidden flex">
+<div class="h-full bg-primary" style="width: 51%"></div>
+<div class="h-full bg-secondary" style="width: 49%"></div>
+</div>
+</div>
+<div class="flex flex-col items-center">
+<span class="font-display-lg text-display-lg text-secondary">49%</span>
+<span class="font-label-md text-label-md text-outline">RIGHT (오른쪽)</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-md pt-md border-t border-slate-50">자세 균형이 매우 안정적입니다. 좌우 차이 2% 이내의 이상적인 범위를 유지하고 있습니다.</p>
+</div>
+<!-- Foot Heatmap -->
+<div class="md:col-span-4 bg-primary-container rounded-xl p-md shadow-lg overflow-hidden relative group">
+<img alt="Heatmap" class="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUbU6IR-iwrd-ux0RnbBpyJqoR6NEvzSLbJ9-KNgIx14SMNZOMjd1-JbHQ1MNv3jhb3JB53X2PhEvkoyTvL9xaGJZ9YWIN71xMH6gzc49xmBat9BMNTmCVRXqQPoQ8YVFVBAH8nEsR8M8Z1jvHMfGFQ_fUnQBYmq4qalhZpzEC63EPveQlcRraGoAkrs-8SdMGOoBoYUFdVz1dDvaphjF3GD5t8B5j_lK6e5M7Lb2zXeWxPefVcgNkRaM2XD34AOqoJO8nmDGJf8uw"/>
+<div class="relative z-10 h-full flex flex-col justify-between text-white">
+<h3 class="font-label-lg text-label-lg">족저압 분포도</h3>
+<div class="flex items-end justify-between">
+<div class="space-y-1">
+<p class="font-label-md text-label-md opacity-80">최고 압력 지점</p>
+<p class="font-headline-lg text-headline-lg">213 mmHg</p>
+</div>
+<span class="material-symbols-outlined text-4xl">footprint</span>
+</div>
+</div>
+</div>
+<!-- Stats Row -->
+<div class="md:col-span-4 bg-surface-container-lowest rounded-xl p-md border border-slate-100 shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
+<h4 class="font-label-lg text-label-lg text-outline mb-md uppercase tracking-wider">접촉 면적 (Foot Area)</h4>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md">왼쪽 발</span>
+<span class="font-headline-md text-headline-md text-primary">321 mm²</span>
+</div>
+<div class="w-full h-1 bg-slate-50 rounded-full">
+<div class="h-full bg-primary rounded-full" style="width: 85%"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md">오른쪽 발</span>
+<span class="font-headline-md text-headline-md text-secondary">319 mm²</span>
+</div>
+<div class="w-full h-1 bg-slate-50 rounded-full">
+<div class="h-full bg-secondary rounded-full" style="width: 82%"></div>
+</div>
+</div>
+</div>
+<div class="md:col-span-4 bg-surface-container-lowest rounded-xl p-md border border-slate-100 shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
+<h4 class="font-label-lg text-label-lg text-outline mb-md uppercase tracking-wider">최대 압력 (Max Pressure)</h4>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md">왼쪽 발</span>
+<span class="font-headline-md text-headline-md text-primary">179 mmHg</span>
+</div>
+<div class="w-full h-1 bg-slate-50 rounded-full">
+<div class="h-full bg-primary rounded-full" style="width: 60%"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md">오른쪽 발</span>
+<span class="font-headline-md text-headline-md text-error">213 mmHg</span>
+</div>
+<div class="w-full h-1 bg-slate-50 rounded-full">
+<div class="h-full bg-error rounded-full" style="width: 75%"></div>
+</div>
+</div>
+</div>
+<div class="md:col-span-4 bg-surface-container-lowest rounded-xl p-md border border-slate-100 shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
+<h4 class="font-label-lg text-label-lg text-outline mb-md uppercase tracking-wider">분석 요약</h4>
+<div class="space-y-md">
+<div class="flex items-start gap-base">
+<span class="material-symbols-outlined text-secondary">check_circle</span>
+<div>
+<p class="font-label-lg text-label-lg">정상 아치 형태</p>
+<p class="font-label-md text-label-md text-outline">아치가 무너지지 않고 유지됨</p>
+</div>
+</div>
+<div class="flex items-start gap-base">
+<span class="material-symbols-outlined text-error">warning</span>
+<div>
+<p class="font-label-lg text-label-lg">우측 압력 과부하</p>
+<p class="font-label-md text-label-md text-outline">오른쪽 뒤꿈치 집중 압력 감지</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Body & Foot Type Analysis -->
+<div class="md:col-span-6 bg-white rounded-xl p-md shadow-sm border border-slate-100">
+<div class="flex items-center gap-base mb-md">
+<span class="material-symbols-outlined text-primary">accessibility_new</span>
+<h3 class="font-headline-md text-headline-md">체형 분석 (Body Type)</h3>
+</div>
+<div class="flex gap-md">
+<div class="flex-1 p-md rounded-xl bg-slate-50 border border-slate-100 text-center">
+<p class="font-label-md text-label-md text-outline mb-xs">척추 후만증</p>
+<p class="font-label-lg text-label-lg">Kyphosis</p>
+<div class="mt-base px-2 py-1 bg-green-100 text-green-700 text-[10px] rounded-full font-bold uppercase">정상 범위</div>
+</div>
+<div class="flex-1 p-md rounded-xl bg-primary-container text-white text-center">
+<p class="font-label-md text-label-md opacity-70 mb-xs">척추 측만증</p>
+<p class="font-label-lg text-label-lg">Scoliosis</p>
+<div class="mt-base px-2 py-1 bg-secondary-container text-secondary text-[10px] rounded-full font-bold uppercase">주의 요망</div>
+</div>
+<div class="flex-1 p-md rounded-xl bg-slate-50 border border-slate-100 text-center">
+<p class="font-label-md text-label-md text-outline mb-xs">척추 전만증</p>
+<p class="font-label-lg text-label-lg">Lordosis</p>
+<div class="mt-base px-2 py-1 bg-green-100 text-green-700 text-[10px] rounded-full font-bold uppercase">정상 범위</div>
+</div>
+</div>
+</div>
+<div class="md:col-span-6 bg-white rounded-xl p-md shadow-sm border border-slate-100">
+<div class="flex items-center gap-base mb-md">
+<span class="material-symbols-outlined text-secondary">footprint</span>
+<h3 class="font-headline-md text-headline-md">발 유형 분석 (Foot Type)</h3>
+</div>
+<div class="flex gap-md h-[116px]">
+<div class="flex-1 relative rounded-xl overflow-hidden group">
+<div class="absolute inset-0 bg-secondary flex flex-col items-center justify-center text-white z-10">
+<span class="font-headline-md text-headline-md">Normal</span>
+<span class="font-label-md text-label-md opacity-80">정상 아치</span>
+</div>
+<img alt="Foot" class="absolute inset-0 w-full h-full object-cover opacity-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFMEZkZv4hoVfTLnvnQReJK361kX1Rf_gToPJwPhjbFPZ33QNICQEvszqZtjZd-FRcO0fopuKpbVMx0rKhaIbn3K3lHEd20O2o0OqF-wOv3cfJ6NPKjsrG6cO86vYpRaiwT9O8fSBeMAQbw5BbJ84dAv3PuPHndo0xHOde1aSk2QlmbTXePsqgmzCgf-umhONRvFSJHnyqPygAKjEMF6X4TgP_u1HH9WsVRfY8dJwxsB8PYEeo_fbYsPSrS5QyHbOSlWSSJjo98gKo"/>
+</div>
+<div class="flex-1 flex flex-col gap-sm">
+<div class="flex-1 bg-slate-50 rounded-xl flex items-center justify-between px-md border border-slate-100">
+<span class="font-label-lg text-label-lg">High Arched</span>
+<span class="material-symbols-outlined text-outline">close</span>
+</div>
+<div class="flex-1 bg-slate-50 rounded-xl flex items-center justify-between px-md border border-slate-100">
+<span class="font-label-lg text-label-lg">Flat Foot</span>
+<span class="material-symbols-outlined text-outline">close</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="mt-lg flex justify-center">
+<a href="/clinical-report.html" class="bg-primary text-on-primary px-xl py-4 rounded-xl font-headline-md shadow-lg flex items-center gap-base active:scale-95 transition-transform">
+<span class="material-symbols-outlined">analytics</span>
+                자세 상세 교정 제안 보기
+            </a>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 h-20 pb-safe bg-white border-t border-slate-200 shadow-[0px_-4px_20px_rgba(26,35,126,0.05)] rounded-t-lg">
+<a class="flex flex-col items-center justify-center bg-cyan-50 text-cyan-700 rounded-xl px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/index.html">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/live.html">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Live</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/reports.html">
+<span class="material-symbols-outlined">insert_chart</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Reports</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/device.html">
+<span class="material-symbols-outlined">settings_input_component</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Device</span>
+</a>
+</nav>
+</body></html>

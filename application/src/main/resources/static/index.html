@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PostureIQ — 대시보드</title>
+<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="/tailwind-config.js"></script>
+<style>
+        body { font-family: 'Lexend', sans-serif; background-color: #f9f9f9; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .heatmap-gradient-left { background: radial-gradient(circle at 40% 20%, #58e6ff 0%, transparent 40%), radial-gradient(circle at 60% 80%, #1a237e 0%, transparent 50%); }
+        .heatmap-gradient-right { background: radial-gradient(circle at 50% 15%, #58e6ff 0%, transparent 45%), radial-gradient(circle at 45% 75%, #1a237e 0%, transparent 55%); }
+        body { min-height: max(884px, 100dvh); }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-slate-50 border-b border-slate-200 shadow-sm flex justify-between items-center px-4 h-16">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjqNPvkaWX8bDMST_3hIZm0a19hQjA1E9gh6594QGtvditsyHgK-sNBBpfaYiukHzO6l3UT5nFPz2rOrydSpT40G00rhqkpIsSRc3cgdMyPSBZjBz1r5fjwDCmfxuQLxfKZ7pyuHQOOXhNzGBkzj3coet5_2Tk46Ql0vV1KwfluQsC6Rlk63MjJt-ip235maQFqQctd0voFkee7dU-EX2YLwOAzQkLwBzNSR8QUWhgfMInwnvCu8IXSim2VVfVK6mMs7WZE9A9fQS-"/>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-[#1A237E]">PostureIQ</span>
+<span class="font-label-md text-label-md text-slate-500">안녕하세요, 민수님</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 bg-cyan-50 px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-cyan-600 text-[18px]">bluetooth_connected</span>
+<span class="font-label-md text-label-md text-cyan-700">연결됨</span>
+</div>
+<a href="/device.html" class="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500">
+<span class="material-symbols-outlined">settings_bluetooth</span>
+</a>
+</div>
+</header>
+<main class="pt-24 px-container-margin max-w-5xl mx-auto space-y-md">
+<!-- Real-time Balance Section -->
+<section class="bg-white rounded-xl p-md shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
+<div class="flex justify-between items-end mb-md">
+<div>
+<h2 class="font-label-lg text-label-lg text-primary-container mb-xs">실시간 체중 밸런스</h2>
+<p class="font-display-md text-display-md text-on-surface">균형 잡힘</p>
+</div>
+<div class="text-right">
+<span class="font-label-md text-label-md text-slate-400">최근 업데이트: 방금 전</span>
+</div>
+</div>
+<div class="relative h-20 bg-surface-container-low rounded-full overflow-hidden flex items-center px-4">
+<div class="absolute inset-y-0 left-0 bg-primary-container transition-all duration-700" style="width: 48%;"></div>
+<div class="absolute inset-y-0 right-0 bg-secondary transition-all duration-700" style="width: 52%;"></div>
+<div class="z-10 w-full flex justify-between font-display-md text-display-md px-4">
+<span class="text-white">48%</span>
+<span class="text-white">52%</span>
+</div>
+<div class="absolute left-1/2 top-0 bottom-0 w-1 bg-white/30 -translate-x-1/2"></div>
+</div>
+<div class="flex justify-between mt-sm font-label-md text-label-md text-outline">
+<span>왼발 (Left)</span>
+<span>오른발 (Right)</span>
+</div>
+</section>
+<!-- Bento Grid: Heatmap & Activity -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-md">
+<!-- Foot Pressure Heatmap -->
+<section class="md:col-span-7 bg-white rounded-xl p-md shadow-[0px_4px_20px_rgba(26,35,126,0.05)] overflow-hidden">
+<h2 class="font-label-lg text-label-lg text-primary-container mb-md">발바닥 압력 분포</h2>
+<div class="flex justify-around items-center h-64 relative bg-slate-50 rounded-lg">
+<div class="relative w-24 h-48 rounded-[40%_40%_30%_30%] border border-slate-200 bg-white shadow-inner heatmap-gradient-left">
+<span class="absolute bottom-[-24px] left-1/2 -translate-x-1/2 font-label-md text-label-md text-slate-400">LEFT</span>
+</div>
+<div class="relative w-24 h-48 rounded-[40%_40%_30%_30%] border border-slate-200 bg-white shadow-inner heatmap-gradient-right">
+<span class="absolute bottom-[-24px] left-1/2 -translate-x-1/2 font-label-md text-label-md text-slate-400">RIGHT</span>
+</div>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-1 items-center">
+<div class="w-2 h-16 rounded-full bg-gradient-to-t from-primary-container via-cyan-400 to-red-500"></div>
+<span class="text-[8px] font-bold text-slate-400">HIGH</span>
+<span class="text-[8px] font-bold text-slate-400">LOW</span>
+</div>
+</div>
+</section>
+<!-- Activity Summary Column -->
+<div class="md:col-span-5 flex flex-col gap-md">
+<div class="bg-error-container/30 border border-error-container/50 rounded-xl p-md flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-error flex items-center justify-center text-white">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<div>
+<p class="font-label-lg text-label-lg text-on-error-container">불균형 알림</p>
+<p class="font-body-md text-body-md text-on-error-container/80">오른쪽 쏠림이 15분간 지속됨</p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-md flex-grow">
+<div class="bg-white rounded-xl p-md shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
+<span class="material-symbols-outlined text-secondary mb-base">steps</span>
+<p class="font-label-md text-label-md text-slate-500 uppercase">오늘 걸음</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">8,432</p>
+</div>
+<div class="bg-white rounded-xl p-md shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
+<span class="material-symbols-outlined text-secondary mb-base">timer</span>
+<p class="font-label-md text-label-md text-slate-500 uppercase">활성 시간</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">42분</p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<a href="/analysis.html" class="bg-primary-container text-white h-14 rounded-xl font-label-lg flex items-center justify-center gap-1 hover:opacity-90 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+<span>종합 분석</span>
+</a>
+<a href="/reports.html" class="bg-white border border-primary-container text-primary-container h-14 rounded-xl font-label-lg flex items-center justify-center gap-1 hover:bg-primary-container hover:text-white active:scale-[0.98] transition-all">
+<span>리포트</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Weekly Progress Preview -->
+<section class="bg-white rounded-xl p-md shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
+<h2 class="font-label-lg text-label-lg text-primary-container mb-md">주간 자세 안정도</h2>
+<div class="flex justify-between items-end h-32 px-2">
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-2 bg-slate-100 rounded-t-full h-24 relative overflow-hidden">
+<div class="absolute bottom-0 w-full bg-secondary transition-all" style="height: 60%"></div>
+</div>
+<span class="text-[10px] font-bold text-slate-400">월</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-2 bg-slate-100 rounded-t-full h-24 relative overflow-hidden">
+<div class="absolute bottom-0 w-full bg-secondary transition-all" style="height: 85%"></div>
+</div>
+<span class="text-[10px] font-bold text-slate-400">화</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-2 bg-slate-100 rounded-t-full h-24 relative overflow-hidden">
+<div class="absolute bottom-0 w-full bg-secondary transition-all" style="height: 40%"></div>
+</div>
+<span class="text-[10px] font-bold text-slate-400">수</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-2 bg-slate-100 rounded-t-full h-24 relative overflow-hidden">
+<div class="absolute bottom-0 w-full bg-cyan-400 transition-all" style="height: 95%"></div>
+</div>
+<span class="text-[10px] font-bold text-cyan-600 font-bold">오늘</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full opacity-30">
+<div class="w-2 bg-slate-100 rounded-t-full h-24"></div>
+<span class="text-[10px] font-bold text-slate-400">금</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full opacity-30">
+<div class="w-2 bg-slate-100 rounded-t-full h-24"></div>
+<span class="text-[10px] font-bold text-slate-400">토</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full opacity-30">
+<div class="w-2 bg-slate-100 rounded-t-full h-24"></div>
+<span class="text-[10px] font-bold text-slate-400">일</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 h-20 pb-safe bg-white border-t border-slate-200 shadow-[0px_-4px_20px_rgba(26,35,126,0.05)] rounded-t-lg">
+<a class="flex flex-col items-center justify-center bg-cyan-50 text-cyan-700 rounded-xl px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/index.html">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/live.html">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Live</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/reports.html">
+<span class="material-symbols-outlined">insert_chart</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Reports</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 hover:text-[#1A237E] px-3 py-1.5 active:scale-95 transition-transform duration-200" href="/device.html">
+<span class="material-symbols-outlined">settings_input_component</span>
+<span class="font-['Lexend'] text-[10px] font-medium tracking-wide uppercase">Device</span>
+</a>
+</nav>
+</body></html>
