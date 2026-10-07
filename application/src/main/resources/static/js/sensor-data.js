@@ -333,7 +333,15 @@
      * @returns {Promise<Array<{foot, deviceId, name}>>} 연결된 장치 목록
      */
     async pair() {
-      const BleClient = await this._ensureInitialized();
+      // ★ 여기서 await 를 하면 안 된다.
+      //   Web Bluetooth 의 requestDevice() 는 '사용자 제스처가 살아 있는 동안' 호출해야 하는데,
+      //   앞에 await 가 하나라도 끼면 Chrome 이 transient activation 을 잃고
+      //   "Must be handling a user gesture to show a permission request" 로 거부한다.
+      //   그래서 초기화는 아래 네이티브 분기 안으로 옮겼다. (동기 검사만 먼저 수행)
+      const rt = bleRuntime();
+      if (!rt) throw new Error('BLE 런타임이 로드되지 않았습니다 (js/vendor/capacitor.js, bluetooth-le.js 확인)');
+      if (!isBluetoothAvailable()) throw new Error('이 브라우저는 Web Bluetooth 를 지원하지 않습니다. 안드로이드 Chrome 또는 앱을 사용하세요.');
+      const BleClient = rt.BleClient;
       this._running = true;
       const found = new Map();  // foot -> device
 
@@ -355,6 +363,7 @@
         });
 
       if (isNativePlatform()) {
+        await this._ensureInitialized();   // 네이티브는 여기서 초기화 (블루투스 켜기 요청 포함)
         this._setScanning(true);
         try {
           await BleClient.requestLEScan({ allowDuplicates: false }, (result) => {
@@ -377,10 +386,12 @@
           this._setScanning(false);
         }
       } else {
-        // 브라우저는 OS 선택 창에서 사용자가 직접 고른다 (필터 없이 전부 표시)
+        // 브라우저는 OS 선택 창에서 사용자가 직접 고른다 (필터 없이 전부 표시).
+        // 이 호출이 이 함수의 '첫 await' 여야 한다 - 위 주석 참고.
         const device = await BleClient.requestDevice({
           optionalServices: [BLE.SERVICE, BLE.BATTERY_SERVICE],
         });
+        this._initialized = true;   // 선택 창까지 떴으면 web 쪽 초기화는 사실상 끝난 상태
         candidates.set(device.deviceId, { deviceId: device.deviceId, name: device.name || '' });
       }
 
