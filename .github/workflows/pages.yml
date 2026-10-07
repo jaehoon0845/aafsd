@@ -1,0 +1,53 @@
+# PostureIQ 웹 UI 를 GitHub Pages 에 배포한다.
+#
+# 이 앱의 화면은 전부 정적 HTML/JS 라서 Spring Boot 없이도 그대로 동작한다.
+# (Spring Boot 는 같은 파일을 서빙만 하고 있음 - DB 를 붙이기 전까지는 Pages 로 충분)
+#
+# 배포 주소: https://jaehoon0845.github.io/aafsd/
+#
+# HTML 안의 경로는 모두 상대경로라 Pages 하위경로(/aafsd/), Spring Boot 루트(/),
+# 안드로이드 앱(https://localhost/) 세 곳에서 모두 동작한다. 절대경로(/js/...)를
+# 다시 쓰면 Pages 에서 깨지므로 주의할 것.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'application/src/main/resources/static/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:        # Actions 탭에서 수동 실행도 가능
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 배포는 한 번에 하나만. 진행 중인 배포를 취소하지는 않는다.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Pages 설정
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true    # Pages 가 꺼져 있으면 자동으로 켠다
+
+      - name: 정적 파일 업로드
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: application/src/main/resources/static
+
+      - name: 배포
+        id: deployment
+        uses: actions/deploy-pages@v4
