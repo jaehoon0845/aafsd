@@ -1,5 +1,8 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v9 - 영점 편향/주기 수정]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v10 - 진단 명령 추가]
+//
+//  v10 - 벤치 테스트용 시리얼 명령 추가 (t=영점, b=기준선, r=원시ADC)
+//        + mag 출력에 기준선 대비 차이(Δ) 표시 - STEP_DELTA 튜닝 근거
 //
 //  v9 - v8 대비 변경점 (실측 데이터로 드러난 문제):
 //   [1] 음수 클램프 제거 (버그). 무부하 노이즈는 0 을 중심으로 +,- 로 흔들리는데
@@ -194,6 +197,42 @@ void tareAll() {
   }
 }
 
+// [v10] HX711 의 '영점/보정 적용 전' 24비트 원시값. 배선 진단용.
+//   정상: 수십만~수백만 범위에서 조금씩 흔들리고, 누르면 한 방향으로 크게 움직인다.
+//   ±8388607(24비트 포화) 근처에 붙어 있으면 브리지가 안 물렸거나 E+/E- 가 안 들어간 것.
+//   값이 매 샘플 수십만씩 널뛰면 접촉 불량이다.
+void printRawAdc() {
+  for (int i = 0; i < LOAD_CELLS; i++) {
+    Serial.print("로드셀"); Serial.print(i + 1);
+    if (!hxReady[i]) { Serial.println(" : 초기화 안 됨"); continue; }
+    Serial.print(" raw:");
+    for (int n = 0; n < 5; n++) {
+      if (scale[i].wait_ready_timeout(300)) {
+        Serial.print(" "); Serial.print(scale[i].read());
+      } else {
+        Serial.print(" (응답없음)"); break;
+      }
+    }
+    Serial.println();
+  }
+}
+
+// [v10] 벤치 테스트용 시리얼 명령
+//   t = 로드셀 2개 영점 재설정
+//   b = 자기장 기준선 재측정
+//   r = 원시 ADC 값 출력 (배선 진단)
+void handleSerialCommand() {
+  if (!Serial.available()) return;
+  int c = Serial.read();
+  while (Serial.available()) Serial.read();   // 개행 등 나머지 버퍼 비우기
+  switch (c) {
+    case 't': case 'T': Serial.println("[명령] 영점 재설정");       tareAll();        break;
+    case 'b': case 'B': Serial.println("[명령] 자기장 기준선 재측정"); measureBaseline(); break;
+    case 'r': case 'R': Serial.println("[명령] 원시 ADC");           printRawAdc();     break;
+    default: break;
+  }
+}
+
 // device_info 16바이트 채우기 (ble-protocol.md 2.3)
 void fillDeviceInfo(uint8_t* buf) {
   memset(buf, 0, 16);
@@ -300,7 +339,10 @@ void loop() {
   unsigned long period = tNow - tPrev;   // 첫 루프값은 무의미
   tPrev = tNow;
 
-  // 0) 앱에서 온 캘리브레이션 명령 처리 (발을 뗀 상태에서 눌러야 함)
+  // 0-a) 시리얼 명령 (t=영점, b=기준선, r=원시ADC) - 벤치 테스트용
+  handleSerialCommand();
+
+  // 0-b) 앱에서 온 캘리브레이션 명령 처리 (발을 뗀 상태에서 눌러야 함)
   if (calibRequest) {
     uint8_t cmd = calibRequest;
     calibRequest = 0;
@@ -371,8 +413,11 @@ void loop() {
   static unsigned long tPrint = 0;
   if (tNow - tPrint >= 1000) {
     tPrint = tNow;
+    // mag 는 절대값보다 '기준선 대비 차이' 가 중요하다. STEP_DELTA 튜닝의 근거가 된다.
     Serial.print("mag=");       Serial.print(mag, 1);
-    Serial.print(" 밟음=");      Serial.print(stepping ? "O" : "X");
+    Serial.print("(Δ");         Serial.print(mag >= 0 ? fabs(mag - baselineB) : -1.0, 1);
+    Serial.print("/");          Serial.print(STEP_DELTA, 0);
+    Serial.print(") 밟음=");     Serial.print(stepping ? "O" : "X");
     Serial.print(" | 하중1=");   Serial.print(loadRaw[0], 0);
     Serial.print(" 하중2=");     Serial.print(loadRaw[1], 0);
     Serial.print(" 차이=");      Serial.print(loadDiff, 0);
