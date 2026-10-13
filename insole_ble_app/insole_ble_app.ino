@@ -1,5 +1,8 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v12 - 원시 ADC 연속 출력]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v13 - 피크 기록]
+//
+//  v13 - 하중의 최소/최대를 기록해 표시. 흘러가는 숫자만으로는 손으로 누른
+//        변화가 노이즈에 묻혀 보이지 않는다. p 로 초기화.
 //
 //  v12 - r 명령을 일회성 출력에서 연속 출력 토글로 변경.
 //        배선을 흔들며 접점을 찾으려면 값이 계속 찍혀야 한다 (0.2초 간격).
@@ -127,6 +130,19 @@ float loadRaw[LOAD_CELLS] = {0, 0};          // 보정 전 하중값 (CAL=1.0 �
 const long HX_RAIL = 8388600L;
 long rawAdc  [LOAD_CELLS] = {0, 0};          // 마지막 원시 ADC 값
 bool hxRailed[LOAD_CELLS] = {false, false};  // 포화 여부
+
+// [v13] 피크 기록(최소/최대).
+//   흘러가는 숫자만 봐서는 손으로 누른 변화가 노이즈에 묻혀 안 보인다.
+//   눌렀다 떼도 그 사이 최대값이 화면에 남아 있어야 '반응했는지' 판단할 수 있다.
+float loadMin[LOAD_CELLS] = {0, 0};
+float loadMax[LOAD_CELLS] = {0, 0};
+bool  peakInit = false;                      // 첫 측정값으로 초기화했는지
+
+void resetPeaks() {
+  for (int i = 0; i < LOAD_CELLS; i++) { loadMin[i] = loadRaw[i]; loadMax[i] = loadRaw[i]; }
+  peakInit = true;
+  Serial.println("[피크] 초기화");
+}
 bool  mlxReady = false;                      // MLX90393 초기화 성공 여부
 
 // ── GATT UUID (docs/ble-protocol.md 와 동일) ──
@@ -243,6 +259,9 @@ void handleSerialCommand() {
     case 'b': case 'B':
       Serial.println("[명령] 자기장 기준선 재측정");
       measureBaseline();
+      break;
+    case 'p': case 'P':
+      resetPeaks();
       break;
     case 'r': case 'R':
       rawMonitor = !rawMonitor;
@@ -371,6 +390,7 @@ void loop() {
     if (cmd == 0x01) {
       tareAll();          // 로드셀 2개 모두 영점
       measureBaseline();  // 자기장 기준값 재측정
+      resetPeaks();       // 영점을 다시 잡았으면 피크도 초기화
     }
     // 0x02(최대값 보정) 는 LOAD_MAX_G 확정 전까지 미구현, 0x00 은 취소(할 일 없음)
   }
@@ -405,6 +425,10 @@ void loop() {
       //   음수 클램프는 앱 전송 직전(toAppScale)에서만 한다.
       const float s = LOAD_SMOOTH[i];
       loadRaw[i] = (s <= 1.0f) ? v : (loadRaw[i] * (s - 1.0f) + v) / s;
+      // [v13] 피크 갱신
+      if (!peakInit) { loadMin[i] = loadMax[i] = loadRaw[i]; }
+      if (loadRaw[i] < loadMin[i]) loadMin[i] = loadRaw[i];
+      if (loadRaw[i] > loadMax[i]) loadMax[i] = loadRaw[i];
     }
   }
 
@@ -474,6 +498,13 @@ void loop() {
       Serial.print(" (신호선 A+/A- 끊김 의심)");
     }
     Serial.println();
+
+    // [v13] 피크. 눌렀다 떼도 그 사이 최대/최소가 남아 있어 반응 여부를 판단할 수 있다.
+    Serial.print("   피크  1번[");  Serial.print(loadMin[0], 0);
+    Serial.print(" ~ ");            Serial.print(loadMax[0], 0);
+    Serial.print("]  2번[");        Serial.print(loadMin[1], 0);
+    Serial.print(" ~ ");            Serial.print(loadMax[1], 0);
+    Serial.println("]   (p = 초기화)");
   }
 #endif
 
