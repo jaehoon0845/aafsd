@@ -1,5 +1,8 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v11 - ADC 포화 감지]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v12 - 원시 ADC 연속 출력]
+//
+//  v12 - r 명령을 일회성 출력에서 연속 출력 토글로 변경.
+//        배선을 흔들며 접점을 찾으려면 값이 계속 찍혀야 한다 (0.2초 간격).
 //
 //  v11 - 로드셀 배선 끊김(24비트 ADC 포화)을 명시적으로 잡아낸다.
 //        raw 가 ±8388607 에 붙으면 측정값이 아니라 회로가 끊긴 것이다.
@@ -220,38 +223,33 @@ void tareAll() {
   }
 }
 
-// [v10] HX711 의 '영점/보정 적용 전' 24비트 원시값. 배선 진단용.
-//   정상: 수십만~수백만 범위에서 조금씩 흔들리고, 누르면 한 방향으로 크게 움직인다.
-//   ±8388607(24비트 포화) 근처에 붙어 있으면 브리지가 안 물렸거나 E+/E- 가 안 들어간 것.
-//   값이 매 샘플 수십만씩 널뛰면 접촉 불량이다.
-void printRawAdc() {
-  for (int i = 0; i < LOAD_CELLS; i++) {
-    Serial.print("로드셀"); Serial.print(i + 1);
-    if (!hxReady[i]) { Serial.println(" : 초기화 안 됨"); continue; }
-    Serial.print(" raw:");
-    for (int n = 0; n < 5; n++) {
-      if (scale[i].wait_ready_timeout(300)) {
-        Serial.print(" "); Serial.print(scale[i].read());
-      } else {
-        Serial.print(" (응답없음)"); break;
-      }
-    }
-    Serial.println();
-  }
-}
+// [v12] 원시 ADC 연속 출력 on/off. 배선을 흔들면서 값 변화를 보려면
+//   일회성 출력으로는 안 되고 계속 찍혀야 한다.
+bool rawMonitor = false;
 
 // [v10] 벤치 테스트용 시리얼 명령
 //   t = 로드셀 2개 영점 재설정
 //   b = 자기장 기준선 재측정
-//   r = 원시 ADC 값 출력 (배선 진단)
+//   r = 원시 ADC 연속 출력 토글 (배선 진단)
 void handleSerialCommand() {
   if (!Serial.available()) return;
   int c = Serial.read();
   while (Serial.available()) Serial.read();   // 개행 등 나머지 버퍼 비우기
   switch (c) {
-    case 't': case 'T': Serial.println("[명령] 영점 재설정");       tareAll();        break;
-    case 'b': case 'B': Serial.println("[명령] 자기장 기준선 재측정"); measureBaseline(); break;
-    case 'r': case 'R': Serial.println("[명령] 원시 ADC");           printRawAdc();     break;
+    case 't': case 'T':
+      Serial.println("[명령] 영점 재설정");
+      tareAll();
+      break;
+    case 'b': case 'B':
+      Serial.println("[명령] 자기장 기준선 재측정");
+      measureBaseline();
+      break;
+    case 'r': case 'R':
+      rawMonitor = !rawMonitor;
+      Serial.println(rawMonitor
+        ? "[명령] 원시 ADC 연속 출력 ON - 배선을 흔들며 값 변화를 볼 것 (끄려면 r 다시)"
+        : "[명령] 원시 ADC 연속 출력 OFF");
+      break;
     default: break;
   }
 }
@@ -438,6 +436,20 @@ void loop() {
   //   완전히 끄려면 파일 위쪽 DEBUG_SERIAL 을 0 으로.
   //   CAL 미보정이라 하중은 '보정전' 값이다.
 #if DEBUG_SERIAL
+  // [v12] 원시 ADC 연속 출력 (r 로 토글). 1초 간격이면 선을 흔드는 반응을 놓치므로
+  //   0.2초마다 찍는다. 추가 변환 없이 위에서 이미 읽은 값을 그대로 쓴다.
+  if (rawMonitor) {
+    static unsigned long tRaw = 0;
+    if (tNow - tRaw >= 200) {
+      tRaw = tNow;
+      Serial.print("raw1=");  Serial.print(rawAdc[0]);
+      if (hxRailed[0]) Serial.print(" ★포화");
+      Serial.print("\traw2="); Serial.print(rawAdc[1]);
+      if (hxRailed[1]) Serial.print(" ★포화");
+      Serial.println();
+    }
+  }
+
   static unsigned long tPrint = 0;
   if (tNow - tPrint >= 1000) {
     tPrint = tNow;
