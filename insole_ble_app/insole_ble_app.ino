@@ -1,5 +1,14 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v8 - 로드셀 2개 / 센서 분리]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v9 - 영점 편향/주기 수정]
+//
+//  v9 - v8 대비 변경점 (실측 데이터로 드러난 문제):
+//   [1] 음수 클램프 제거 (버그). 무부하 노이즈는 0 을 중심으로 +,- 로 흔들리는데
+//       v8 이 음수만 잘라내서 평균이 위로 밀렸다. 노이즈가 큰 2번 셀의 기준선이
+//       0 이 아니라 ~700 으로 떠 있던 원인. 클램프는 앱 전송 직전에만 한다.
+//   [2] LOAD_SMOOTH 를 로드셀별 배열로 (노이즈가 큰 셀만 더 눌러줄 수 있도록)
+//   [3] MLX90393 변환 시간 단축. 기본값(OSR_3+FILTER_7)은 3축 변환에 약 200ms 라
+//       루프 주기가 311ms 로 측정됐다. OSR_1+FILTER_4 로 낮춘다.
+//   [4] 고정 delay(100) -> 이번 루프에 쓴 시간을 뺀 나머지만 대기 (실제 10Hz 유지)
 //
 //  v8 - v7 대비 변경점:
 //   [1] 자계 센서와 압력 센서를 분리. v7 은 '밟음' 으로 판정됐을 때만 하중을 읽었지만
@@ -84,7 +93,10 @@ const float LOAD_MAX_G = 1000.0;   // 앱 0~1023 에 대응할 최대 하중(g)
 
 // 하중 평활화 계수 (지수이동평균). 1 = 평활 없음(원값), 클수록 부드럽지만 느려진다.
 //   v7 까지 쓰던 get_units(3) 의 평균 효과를 논블로킹에서 대신한다.
-const float LOAD_SMOOTH = 3.0;
+//   ★ 로드셀별로 따로 준다. 노이즈가 큰 셀은 값을 올려서 눌러줄 수 있다.
+//     다만 평활은 노이즈를 '가려줄 뿐' 분해능을 되살리지는 못한다.
+//     근본 해결은 배선/장착 쪽이다.
+const float LOAD_SMOOTH[LOAD_CELLS] = {3.0, 3.0};
 
 // 펌웨어 버전 (device_info 로 앱에 전달)
 const uint8_t FW_MAJOR = 1, FW_MINOR = 1, FW_PATCH = 0;
@@ -236,6 +248,13 @@ void setup() {
   mlxReady = mlx.begin_I2C(0x18);
   if (!mlxReady) {
     Serial.println("[경고] MLX90393 응답 없음 - SDA/SCL 배선, I2C 주소 확인");
+  } else {
+    // [v9] 변환 시간을 줄인다. Adafruit 기본값(OSR_3 + FILTER_7)은 3축 변환에
+    //   약 200ms 가 걸려서 readData() 한 번이 루프의 2/3 를 먹는다 (실측 주기 311ms).
+    //   밟음 감지는 '기준선 대비 변화량' 만 보므로 이 정도 정밀도가 필요 없다.
+    //   ★ 노이즈가 늘면 STEP_DELTA 를 같이 올려야 한다. 아래 두 값은 튜닝 대상.
+    mlx.setOversampling(MLX90393_OSR_1);
+    mlx.setFilter(MLX90393_FILTER_4);
   }
 
   measureBaseline();
@@ -311,10 +330,13 @@ void loop() {
     if (!hxReady[i]) continue;
     if (scale[i].is_ready()) {
       float v = scale[i].get_units(1);   // is_ready() 확인 후라 즉시 반환
-      if (v < 0) v = 0;                  // 음수 하중은 0 으로 (영점 드리프트)
-      loadRaw[i] = (LOAD_SMOOTH <= 1.0f)
-                 ? v
-                 : (loadRaw[i] * (LOAD_SMOOTH - 1.0f) + v) / LOAD_SMOOTH;
+      // [v9] 여기서 음수를 0 으로 자르면 안 된다.
+      //   무부하 상태의 노이즈는 0 을 중심으로 +,- 로 흔들리는데
+      //   음수만 잘라내면 평균이 위로 밀려서 '있지도 않은 하중' 이 생긴다.
+      //   노이즈가 큰 로드셀일수록 이 편향이 커진다 (2번 셀의 기준선 ~700 의 원인).
+      //   음수 클램프는 앱 전송 직전(toAppScale)에서만 한다.
+      const float s = LOAD_SMOOTH[i];
+      loadRaw[i] = (s <= 1.0f) ? v : (loadRaw[i] * (s - 1.0f) + v) / s;
     }
   }
 
@@ -361,5 +383,9 @@ void loop() {
   }
 #endif
 
-  delay(100);   // 목표 10Hz - 실제 주기는 위 출력으로 확인할 것
+  // [v9] 고정 delay(100) 대신 '이번 루프에 쓴 시간' 을 빼고 남은 만큼만 쉰다.
+  //   센서 읽기 시간이 그대로 주기에 더해지던 문제를 없애 10Hz 를 실제로 지킨다.
+  const unsigned long TARGET_MS = 100;
+  unsigned long spent = millis() - tNow;
+  if (spent < TARGET_MS) delay(TARGET_MS - spent);
 }
