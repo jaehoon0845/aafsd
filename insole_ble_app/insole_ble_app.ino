@@ -1,5 +1,9 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v10 - 진단 명령 추가]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v11 - ADC 포화 감지]
+//
+//  v11 - 로드셀 배선 끊김(24비트 ADC 포화)을 명시적으로 잡아낸다.
+//        raw 가 ±8388607 에 붙으면 측정값이 아니라 회로가 끊긴 것이다.
+//        그 상태로 tare 하면 영점이 쓰레기값이 되어 하중이 0 에 고정된다.
 //
 //  v10 - 벤치 테스트용 시리얼 명령 추가 (t=영점, b=기준선, r=원시ADC)
 //        + mag 출력에 기준선 대비 차이(Δ) 표시 - STEP_DELTA 튜닝 근거
@@ -111,6 +115,15 @@ Adafruit_MLX90393 mlx = Adafruit_MLX90393();
 
 bool  hxReady[LOAD_CELLS] = {false, false};  // 로드셀별 초기화 성공 여부
 float loadRaw[LOAD_CELLS] = {0, 0};          // 보정 전 하중값 (CAL=1.0 이면 실제 g 아님)
+
+// [v11] 24비트 ADC 포화 감지.
+//   입력이 ±8388607(0x7FFFFF) 에 붙으면 그건 '측정값' 이 아니라 회로가 끊긴 것이다.
+//   브리지 신호선(A+/A-)이 떨어졌거나 로드셀이 망가진 경우 이 값이 나온다.
+//   이 상태에서 tare() 를 하면 쓰레기값을 영점으로 저장해서, 하중이 0 으로
+//   고정된 채 영원히 안 움직인다. 조용히 실패하지 않도록 명시적으로 잡아낸다.
+const long HX_RAIL = 8388600L;
+long rawAdc  [LOAD_CELLS] = {0, 0};          // 마지막 원시 ADC 값
+bool hxRailed[LOAD_CELLS] = {false, false};  // 포화 여부
 bool  mlxReady = false;                      // MLX90393 초기화 성공 여부
 
 // ── GATT UUID (docs/ble-protocol.md 와 동일) ──
@@ -188,6 +201,16 @@ void tareAll() {
   for (int i = 0; i < LOAD_CELLS; i++) {
     if (!hxReady[i]) continue;
     if (scale[i].wait_ready_timeout(500)) {
+      // [v11] 포화 상태에서 영점을 잡으면 쓰레기값이 기준이 되어 하중이 0 에 고정된다.
+      //   덮어쓰지 말고 거부하고 알린다.
+      long probe = scale[i].read();
+      if (probe >= HX_RAIL || probe <= -HX_RAIL) {
+        Serial.print("[tare] 로드셀"); Serial.print(i + 1);
+        Serial.print(" ★영점 건너뜀 - ADC 포화(raw="); Serial.print(probe);
+        Serial.println("). 배선부터 고칠 것");
+        hxRailed[i] = true;
+        continue;
+      }
       scale[i].tare();
       loadRaw[i] = 0;
       Serial.print("[tare] 로드셀"); Serial.print(i + 1); Serial.println(" 영점 완료");
@@ -371,7 +394,12 @@ void loop() {
   for (int i = 0; i < LOAD_CELLS; i++) {
     if (!hxReady[i]) continue;
     if (scale[i].is_ready()) {
-      float v = scale[i].get_units(1);   // is_ready() 확인 후라 즉시 반환
+      // [v11] get_units() 대신 raw 를 직접 읽는다. 포화 판정을 하려면 원시값이 필요하다.
+      //   (get_units 는 내부에서 offset/scale 을 적용해버려 레일 상태가 안 보인다)
+      long raw = scale[i].read();        // is_ready() 확인 후라 즉시 반환
+      rawAdc[i]   = raw;
+      hxRailed[i] = (raw >= HX_RAIL || raw <= -HX_RAIL);
+      float v = (float)(raw - scale[i].get_offset()) / scale[i].get_scale();
       // [v9] 여기서 음수를 0 으로 자르면 안 된다.
       //   무부하 상태의 노이즈는 0 을 중심으로 +,- 로 흔들리는데
       //   음수만 잘라내면 평균이 위로 밀려서 '있지도 않은 하중' 이 생긴다.
@@ -424,7 +452,16 @@ void loop() {
     Serial.print(" | 앱값=");    Serial.print(heel);
     Serial.print(",");          Serial.print(ball);
     Serial.print(" 연결=");      Serial.print(deviceConnected ? "O" : "X");
-    Serial.print(" 주기(ms)=");  Serial.println(period);
+    Serial.print(" 주기(ms)=");  Serial.print(period);
+    // [v11] 포화는 배선 끊김이다. 값이 0 으로 고정돼 보이는 것과 구분되도록 크게 알린다.
+    if (hxRailed[0] || hxRailed[1]) {
+      Serial.print("  ★[배선확인] ADC 포화:");
+      for (int i = 0; i < LOAD_CELLS; i++) {
+        if (hxRailed[i]) { Serial.print(" "); Serial.print(i + 1); Serial.print("번"); }
+      }
+      Serial.print(" (신호선 A+/A- 끊김 의심)");
+    }
+    Serial.println();
   }
 #endif
 
