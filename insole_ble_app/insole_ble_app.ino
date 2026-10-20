@@ -1,5 +1,9 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v13 - 피크 기록]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v14 - 피크 누적 버그 수정]
+//
+//  v14 - v13 의 피크가 누적되지 않던 버그 수정.
+//        첫 측정 분기에서 peakInit 을 세우지 않아 매 샘플 리셋됐다.
+//        시리얼 t(영점)에도 피크 초기화를 연결.
 //
 //  v13 - 하중의 최소/최대를 기록해 표시. 흘러가는 숫자만으로는 손으로 누른
 //        변화가 노이즈에 묻혀 보이지 않는다. p 로 초기화.
@@ -255,6 +259,7 @@ void handleSerialCommand() {
     case 't': case 'T':
       Serial.println("[명령] 영점 재설정");
       tareAll();
+      resetPeaks();   // [v14] 영점을 바꿨으면 피크도 같이 초기화해야 의미가 맞는다
       break;
     case 'b': case 'B':
       Serial.println("[명령] 자기장 기준선 재측정");
@@ -425,14 +430,23 @@ void loop() {
       //   음수 클램프는 앱 전송 직전(toAppScale)에서만 한다.
       const float s = LOAD_SMOOTH[i];
       loadRaw[i] = (s <= 1.0f) ? v : (loadRaw[i] * (s - 1.0f) + v) / s;
-      // [v13] 피크 갱신
-      if (!peakInit) { loadMin[i] = loadMax[i] = loadRaw[i]; }
-      if (loadRaw[i] < loadMin[i]) loadMin[i] = loadRaw[i];
-      if (loadRaw[i] > loadMax[i]) loadMax[i] = loadRaw[i];
+      // [v14] 피크 갱신.
+      //   v13 은 첫 측정 분기에서 peakInit 을 세우지 않아, p 를 누르기 전까지
+      //   매 샘플마다 최소/최대가 현재값으로 리셋됐다 (항상 [X ~ X] 로 표시).
+      //   첫 바퀴는 초기화만 하고, 그 다음부터 누적한다.
+      if (!peakInit) {
+        loadMin[i] = loadMax[i] = loadRaw[i];
+      } else {
+        if (loadRaw[i] < loadMin[i]) loadMin[i] = loadRaw[i];
+        if (loadRaw[i] > loadMax[i]) loadMax[i] = loadRaw[i];
+      }
     }
   }
 
   // ── 3) 두 하중의 차이 (부호 있음: 1번이 크면 양수) ──────────
+  // [v14] 모든 로드셀의 첫 측정이 끝났으면 이제부터 피크를 누적한다.
+  peakInit = true;
+
   float loadDiff = loadRaw[0] - loadRaw[1];
 
   // ── 4) 앱 전송용 8바이트 패킷 ──────────────────────────────
