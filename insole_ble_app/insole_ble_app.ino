@@ -1,5 +1,9 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v15 - 자기장 3축 분리]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v16 - 전단 BLE 전송]
+//
+//  v16 - 전단/수직(자기장 유래)을 전용 특성 0xA0F5 로 전송.
+//        압력 패킷(0xA0F1)에 섞지 않는다 - 그 4칸은 압력 규약이라
+//        자기장 값을 넣으면 앱의 수직 하중 합산이 오염된다.
 //
 //  v15 - 자계 센서를 3축으로 분리해 전단/수직을 구분한다.
 //        v14 까지는 sqrt(x²+y²+z²) 크기 하나만 써서 방향 정보가 버려졌다.
@@ -159,10 +163,15 @@ bool  mlxReady = false;                      // MLX90393 초기화 성공 여부
 #define PRESSURE_UUID     "0000a0f1-0000-1000-8000-00805f9b34fb"   // Notify, 8 bytes
 #define DEVICE_INFO_UUID  "0000a0f2-0000-1000-8000-00805f9b34fb"   // Read, 16 bytes
 #define CALIBRATE_UUID    "0000a0f3-0000-1000-8000-00805f9b34fb"   // Write, 1 byte
+// [v16] 전단/수직(자기장 유래) 전용 특성.
+//   압력 패킷(0xA0F1)에 섞지 않는다. 그 패킷의 4칸은 '압력' 규약이라
+//   자기장 값을 넣으면 앱의 수직 하중 합산이 오염된다.
+#define SHEAR_UUID        "0000a0f5-0000-1000-8000-00805f9b34fb"   // Notify, 4 bytes
 
 NimBLECharacteristic* loadChar;
 NimBLECharacteristic* infoChar;
 NimBLECharacteristic* calibChar;
+NimBLECharacteristic* shearChar;   // [v16]
 volatile bool    deviceConnected = false;   // BLE 호스트 태스크에서 write, loop에서 read
 volatile uint8_t calibRequest    = 0;       // 앱이 쓴 명령 (0=없음, 1=tare, 2=max)
 
@@ -391,6 +400,8 @@ void setup() {
                                         NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
   calibChar->setCallbacks(new CalibrateCallbacks());
 
+  shearChar = svc->createCharacteristic(SHEAR_UUID, NIMBLE_PROPERTY::NOTIFY);   // [v16]
+
   svc->start();
 
   // 광고 한 패킷에 '이름 + 서비스 UUID' 를 모두 넣는다.
@@ -507,6 +518,22 @@ void loop() {
   if (deviceConnected) {
     loadChar->setValue(packet, 8);
     loadChar->notify();
+
+    // [v16] 전단/수직 (자기장 유래) 4바이트.
+    //   int16 두 개, 각각 0.1 단위로 실어 보낸다 (×10 후 반올림).
+    //   전단은 항상 0 이상, 수직은 부호가 있어 int16 을 쓴다.
+    //   범위를 넘으면 자르고 보낸다 (랩어라운드 방지).
+    float sh = magShear  * 10.0f;
+    float nz = magNormal * 10.0f;
+    if (sh >  32767.0f) sh =  32767.0f;  if (sh < -32768.0f) sh = -32768.0f;
+    if (nz >  32767.0f) nz =  32767.0f;  if (nz < -32768.0f) nz = -32768.0f;
+    int16_t shearOut  = (int16_t)sh;
+    int16_t normalOut = (int16_t)nz;
+    uint8_t spacket[4];
+    memcpy(spacket + 0, &shearOut,  2);
+    memcpy(spacket + 2, &normalOut, 2);
+    shearChar->setValue(spacket, 4);
+    shearChar->notify();
   }
 
   // ── 6) 진단 출력 (1초에 한 번) ─────────────────────────────

@@ -107,8 +107,8 @@
 <!-- Shear Stress Card -->
 <div class="bg-surface-container-lowest rounded-xl p-md shadow-[0px_4px_20px_rgba(26,35,126,0.05)]">
 <div class="flex justify-between items-center mb-sm">
-<span class="font-label-lg text-label-lg text-on-surface">전단 응력 (Shear Stress)</span>
-<span id="shear-stress" class="font-headline-md text-headline-md text-error">— N/cm²</span>
+<span class="font-label-lg text-label-lg text-on-surface">전단 (Shear, 자계)</span>
+<span id="shear-stress" class="font-headline-md text-headline-md text-error">— μT</span>
 </div>
 <div class="h-16 w-full chart-mask relative overflow-hidden bg-surface-container-low rounded-lg">
 <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 40">
@@ -316,10 +316,15 @@
       forceHistory.shift(); forceHistory.push(kg);
       $('vertical-force-path').setAttribute('d', buildPath(forceHistory, 40));
 
-      // 전단 응력 = 좌우 차이 + 변동성 (fake 메트릭)
-      const shear = Math.abs(r.balance.leftPct - r.balance.rightPct) * 0.18 + Math.random() * 0.4;
-      $('shear-stress').textContent = `${shear.toFixed(1)} N/cm²`;
-      shearHistory.shift(); shearHistory.push(shear);
+      // 전단 — 자계 센서(MLX90393)가 측정한 자석의 수평 변위에서 유도한 값.
+      //   v16 이전에는 좌우 밸런스 + 난수로 만든 자리표시자였다.
+      //   센서가 없거나 구버전 펌웨어면 값이 안 오므로 '—' 로 둔다.
+      //   단위는 아직 보정 전이라 자기장 변화량(μT)을 그대로 쓴다.
+      //   실제 N/cm² 로 환산하려면 기구 완성 후 교정이 필요하다.
+      const shearSrc = r.shear && (r.shear.R || r.shear.L);
+      const shear = shearSrc ? shearSrc.shear : null;
+      $('shear-stress').textContent = shear === null ? '— μT' : `${shear.toFixed(1)} μT`;
+      shearHistory.shift(); shearHistory.push(shear === null ? 0 : shear);
       $('shear-stress-path').setAttribute('d', buildPath(shearHistory, 40));
 
       // 상태 배너 (불균형 임계값 15%) - 두 발 모두 있을 때만 판정

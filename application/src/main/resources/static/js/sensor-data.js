@@ -45,6 +45,7 @@
     DEVICE_INFO:     '0000a0f2-0000-1000-8000-00805f9b34fb',  // Read, 16 bytes
     CALIBRATE:       '0000a0f3-0000-1000-8000-00805f9b34fb',  // Write, 1 byte
     SAMPLING_RATE:   '0000a0f4-0000-1000-8000-00805f9b34fb',  // Read/Write, 1 byte (펌웨어 미구현)
+    SHEAR:           '0000a0f5-0000-1000-8000-00805f9b34fb',  // Notify, 4 bytes (int16 전단, int16 수직)
     BATTERY_SERVICE: '0000180f-0000-1000-8000-00805f9b34fb',  // 표준 Battery Service
     BATTERY_LEVEL:   '00002a19-0000-1000-8000-00805f9b34fb',  // Read/Notify, 1 byte (펌웨어 미구현)
     PACKET_BYTES: 8,
@@ -91,6 +92,22 @@
       arch: dataView.getUint16(2, true),
       ball: dataView.getUint16(4, true),
       toe:  dataView.getUint16(6, true),
+    };
+  }
+
+  /**
+   * 전단 패킷(0xA0F5) 4바이트 -> { shear, normal }
+   * 자계 센서가 측정한 자석의 변위에서 유도한 값. 둘 다 LE int16, 0.1 단위.
+   *   전단   = √(ΔBx² + ΔBy²)  자석이 수평으로 밀린 양
+   *   수직   = ΔBz             자석이 가까워/멀어진 양 (부호 있음)
+   * 주의: 쌍극자 자기장이라 두 성분이 완전히 독립적이지는 않다.
+   *       수직 하중은 로드셀 값이 더 정확하므로 그쪽을 쓰고, 이 값은 전단 용도.
+   */
+  function parseShearPacket(dataView) {
+    if (!dataView || dataView.byteLength < 4) return null;
+    return {
+      shear:  dataView.getInt16(0, true) / 10,
+      normal: dataView.getInt16(2, true) / 10,
     };
   }
 
@@ -207,11 +224,17 @@
       if (Math.random() < 0.0008) this._battery.R = Math.max(0, this._battery.R - 1);
 
       const balance = computeBalance(left, right);
+      // Mock 에서도 전단을 흉내 낸다 (BLE 와 같은 모양 유지)
+      const shearMock = (f) => ({
+        shear:  Math.abs(noise()) * 0.05 + (imbalanceFactor > 0 ? 1.2 : 0.3),
+        normal: -(sumFoot(f) / 1000),
+      });
       this.emit('reading', {
         timestamp: Date.now(),
         source: 'mock',
         feet: { L: true, R: true },
         left, right, balance,
+        shear: { L: shearMock(left), R: shearMock(right) },
       });
     }
   }
@@ -249,6 +272,7 @@
         connected: false, connecting: false,
         battery: null,
         last: null,          // 마지막 { heel, arch, ball, toe }
+        shear: null,         // 마지막 { shear, normal } - 자계 센서 유래, 없을 수 있음
         lastAt: 0,
         reconnectTimer: null,
       };
@@ -464,6 +488,15 @@
           device.deviceId, BLE.SERVICE, BLE.PRESSURE,
           (value) => this._onPacket(foot, value)
         );
+        // 전단(0xA0F5)은 펌웨어 v16 이상에만 있다. 없는 펌웨어면 조용히 건너뛴다.
+        try {
+          await BleClient.startNotifications(
+            device.deviceId, BLE.SERVICE, BLE.SHEAR,
+            (value) => { const s = parseShearPacket(value); if (s) state.shear = s; }
+          );
+        } catch (_) {
+          console.info(`[BLE] ${foot}: 전단 특성 없음 (구버전 펌웨어)`);
+        }
         state.connected = true;
         state.connecting = false;
         this.emit('connected', { foot, deviceId: device.deviceId, name: state.name });
@@ -530,10 +563,12 @@
       const right = feet.R ? { ...R.last, battery: R.battery } : emptyFoot(R.battery);
       // 한쪽만 연결된 상태에서 좌우 밸런스는 의미가 없으므로 50/50 으로 둔다.
       const balance = (feet.L && feet.R) ? computeBalance(left, right) : { leftPct: 50, rightPct: 50 };
+      // 전단은 자계 센서가 있는 발만 보낸다. 없으면 null.
+      const shear = { L: L.shear, R: R.shear };
       this.emit('reading', {
         timestamp: Date.now(),
         source: 'ble',
-        feet, left, right, balance,
+        feet, left, right, balance, shear,
       });
     }
 
