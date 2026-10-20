@@ -1,5 +1,10 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v14 - 피크 누적 버그 수정]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v15 - 자기장 3축 분리]
+//
+//  v15 - 자계 센서를 3축으로 분리해 전단/수직을 구분한다.
+//        v14 까지는 sqrt(x²+y²+z²) 크기 하나만 써서 방향 정보가 버려졌다.
+//        전단 = √(ΔBx²+ΔBy²) 수평 변위, 수직 = ΔBz.
+//        (자석이 에코플렉스 같은 연질 층 위에 있어야 변위가 생긴다)
 //
 //  v14 - v13 의 피크가 누적되지 않던 버그 수정.
 //        첫 측정 분기에서 peakInit 을 세우지 않아 매 샘플 리셋됐다.
@@ -199,24 +204,50 @@ const float STEP_DELTA = 30.0;     // 실험으로 검증 필요
 int  stepCounter = 0;              // 연속 초과 횟수 (노이즈 방지)
 const int STEP_NEEDED = 3;         // 3회 연속이면 밟음 확정
 
-float readMag() {
+// [v15] 3축을 각각 보관한다.
+//   v14 까지는 sqrt(x²+y²+z²) 로 '크기' 하나만 반환했는데, 그러면 방향 정보가
+//   사라져서 전단(수평 변위)을 알 수 없다. 자석이 옆으로 밀렸는지 아래로
+//   눌렸는지 구분하려면 축을 분리해야 한다.
+//     수직 하중 -> 자석이 가까워짐 -> Bz 변화
+//     전단 하중 -> 자석이 옆으로   -> Bx, By 변화
+float magX = 0, magY = 0, magZ = 0;      // 최근 측정값
+float baseX = 0, baseY = 0, baseZ = 0;   // 기준선(발 뗀 상태)
+float magShear = 0;                      // √(ΔBx² + ΔBy²)  수평 = 전단
+float magNormal = 0;                     // ΔBz             수직 (부호 있음)
+
+bool readMag() {
   float x, y, z;
-  if (mlx.readData(&x, &y, &z)) return sqrt(x*x + y*y + z*z);
-  return -1;
+  if (!mlx.readData(&x, &y, &z)) return false;
+  magX = x; magY = y; magZ = z;
+  return true;
+}
+
+// 크기(기존 밟음 판정에 그대로 사용)
+float magMagnitude() {
+  return sqrt(magX * magX + magY * magY + magZ * magZ);
 }
 
 // 발 뗀 상태에서 20회 평균 -> baselineB. 부팅 시와 calibrate(0x01) 시 호출.
 void measureBaseline() {
-  float sum = 0; int cnt = 0;
+  // [v15] 축별로 평균을 낸다. 전단/수직을 분리하려면 축마다 기준선이 필요하다.
+  float sx = 0, sy = 0, sz = 0; int cnt = 0;
   for (int i = 0; i < 20; i++) {
-    float b = readMag();
-    if (b >= 0) { sum += b; cnt++; }
+    if (readMag()) { sx += magX; sy += magY; sz += magZ; cnt++; }
     delay(20);
   }
-  baselineB = (cnt > 0) ? sum / cnt : 0;
+  if (cnt > 0) {
+    baseX = sx / cnt; baseY = sy / cnt; baseZ = sz / cnt;
+    baselineB = sqrt(baseX * baseX + baseY * baseY + baseZ * baseZ);
+  } else {
+    baseX = baseY = baseZ = 0; baselineB = 0;
+    Serial.println("[경고] baseline 측정 실패 - 자기장 값을 하나도 못 읽음");
+  }
+  magShear = magNormal = 0;
   stepCounter = 0;
-  if (cnt == 0) Serial.println("[경고] baseline 측정 실패 - 자기장 값을 하나도 못 읽음");
-  Serial.print("baseline(자기장)="); Serial.println(baselineB, 1);
+  Serial.print("baseline  X="); Serial.print(baseX, 1);
+  Serial.print(" Y=");          Serial.print(baseY, 1);
+  Serial.print(" Z=");          Serial.print(baseZ, 1);
+  Serial.print("  크기=");       Serial.println(baselineB, 1);
 }
 
 // 모든 로드셀 영점 잡기 (발을 뗀 상태에서 호출할 것)
@@ -403,7 +434,16 @@ void loop() {
   // ── 1) 자계 센서 (압력과 독립) ─────────────────────────────
   //   밟음 여부는 '표시용' 으로만 쓴다. v7 과 달리 하중 측정을 막지 않는다.
   bool stepping = false;
-  float mag = readMag();
+  bool magOk = readMag();
+  float mag = magOk ? magMagnitude() : -1.0f;
+  if (magOk) {
+    // [v15] 기준선 대비 변위를 축별로 분해
+    //   수평 성분 = 자석이 옆으로 밀린 양 -> 전단
+    //   수직 성분 = 자석이 가까워/멀어진 양 -> 법선(수직 하중)
+    float dx = magX - baseX, dy = magY - baseY, dz = magZ - baseZ;
+    magShear  = sqrt(dx * dx + dy * dy);
+    magNormal = dz;
+  }
   if (mag >= 0 && fabs(mag - baselineB) > STEP_DELTA) {
     stepCounter++;
     if (stepCounter >= STEP_NEEDED) stepping = true;
@@ -519,6 +559,13 @@ void loop() {
     Serial.print("]  2번[");        Serial.print(loadMin[1], 0);
     Serial.print(" ~ ");            Serial.print(loadMax[1], 0);
     Serial.println("]   (p = 초기화)");
+
+    // [v15] 자기장 3축. 자석을 옆으로 밀면 전단, 위아래로 움직이면 수직이 변한다.
+    Serial.print("   자기장 X=");  Serial.print(magX, 1);
+    Serial.print(" Y=");           Serial.print(magY, 1);
+    Serial.print(" Z=");           Serial.print(magZ, 1);
+    Serial.print("  |  전단=");     Serial.print(magShear, 1);
+    Serial.print("  수직=");        Serial.println(magNormal, 1);
   }
 #endif
 
