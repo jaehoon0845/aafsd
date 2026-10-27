@@ -1,5 +1,9 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v17 - 피크 초기화 버그 수정]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v18 - 채널별 부호 설정]
+//
+//  v18 - LOAD_SIGN 추가. 배선 방향에 따라 누를 때 하중이 음수로 가는데,
+//        앱은 0~1023 양수만 받으므로 음수 채널은 항상 0 으로 전송되어
+//        시리얼은 변하는데 앱 화면만 멈춘 것처럼 보인다.
 //
 //  v17 - 피크 초기화 플래그를 로드셀별로 분리.
 //        v14 는 전역 플래그를 루프 밖에서 무조건 세워, 첫 루프에 HX711 이
@@ -123,6 +127,12 @@ const int HX_SCK[LOAD_CELLS] = { 3, 5};    // 로드셀 1, 2 의 SCK(클럭)
 //   이건 두 채널의 '상대 크기'만 맞춘 것이고 절대 단위(g) 보정은 아직 아니다.
 //   아는 무게를 올려 측정하면 두 값 모두 제대로 된 계수로 바꿀 수 있다.
 const float CAL_FACTOR[LOAD_CELLS] = {1.0, 0.5};  // 1.0 = 보정 안 됨, 0.5 = 2배로 증폭
+
+// [v18] 채널별 부호. 배선(A+/A- 방향)에 따라 누를 때 값이 음수로 갈 수 있다.
+//   앱은 압력을 0~1023 양수로만 받으므로, 음수로 가는 채널은 전송 단계에서
+//   전부 0 으로 잘려 앱 화면이 멈춘 것처럼 보인다.
+//   시리얼에서 '누를 때 하중이 음수로 간다' 면 그 채널을 -1.0 으로 바꿀 것.
+const float LOAD_SIGN[LOAD_CELLS] = {1.0, 1.0};   // 1.0 = 그대로, -1.0 = 뒤집기
 // 앱의 0~1023 에 대응할 '채널 하나당' 최대 하중(g).
 //   CAL_FACTOR 보정 후 1 count = 1 g 이므로 이 값이 곧 g 단위다.
 //   채널 하나(로드셀 2개)가 받을 수 있는 최대를 50kg 으로 잡았다.
@@ -492,7 +502,9 @@ void loop() {
       long raw = scale[i].read();        // is_ready() 확인 후라 즉시 반환
       rawAdc[i]   = raw;
       hxRailed[i] = (raw >= HX_RAIL || raw <= -HX_RAIL);
-      float v = (float)(raw - scale[i].get_offset()) / scale[i].get_scale();
+      // [v18] 부호를 여기서 한 번에 적용한다. 이후 모든 계산(피크, 차이, 앱 전송)이
+      //   같은 방향을 쓰게 되어 시리얼과 앱이 어긋나지 않는다.
+      float v = LOAD_SIGN[i] * (float)(raw - scale[i].get_offset()) / scale[i].get_scale();
       // [v9] 여기서 음수를 0 으로 자르면 안 된다.
       //   무부하 상태의 노이즈는 0 을 중심으로 +,- 로 흔들리는데
       //   음수만 잘라내면 평균이 위로 밀려서 '있지도 않은 하중' 이 생긴다.
@@ -587,6 +599,11 @@ void loop() {
     Serial.print(" | 앱값=");    Serial.print(heel);
     Serial.print(",");          Serial.print(ball);
     Serial.print(" 연결=");      Serial.print(deviceConnected ? "O" : "X");
+    // [v18] 앱이 실제로 받는 값이 0 에 고정돼 있으면 부호가 뒤집힌 것이다.
+    //   (하중은 변하는데 앱값이 계속 0 이면 LOAD_SIGN 을 -1.0 으로)
+    if (deviceConnected && heel == 0 && ball == 0 && (loadRaw[0] < -50 || loadRaw[1] < -50)) {
+      Serial.print(" ★[부호확인] 하중이 음수라 앱에 0 으로 전송됨");
+    }
     Serial.print(" 주기(ms)=");  Serial.print(period);
     // [v11] 포화는 배선 끊김이다. 값이 0 으로 고정돼 보이는 것과 구분되도록 크게 알린다.
     if (hxRailed[0] || hxRailed[1]) {
