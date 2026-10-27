@@ -306,10 +306,12 @@
       updateGlow('L', r.left);
       updateGlow('R', r.right);
 
-      // 수직 하중 (raw 합 × 스케일 ≈ 체중)
-      // TODO: 펌웨어 CAL_FACTOR / LOAD_MAX_G 확정 후 계수 맞출 것 (현재 1023 raw ≈ LOAD_MAX_G g)
+      // 수직 하중.
+      //   펌웨어가 채널마다 0~LOAD_MAX_G(=50kg) 를 0~1023 으로 스케일해서 보낸다.
+      //   따라서 1 count = 50/1023 kg. 펌웨어의 LOAD_MAX_G 를 바꾸면 여기도 바꿔야 한다.
+      const KG_PER_COUNT = 50 / 1023;
       const totalRaw = PostureIQ.sumFoot(r.left) + PostureIQ.sumFoot(r.right);
-      const kg = totalRaw * 0.04;
+      const kg = totalRaw * KG_PER_COUNT;
       $('vertical-force').textContent = `${kg.toFixed(1)} kg`;
 
       // 슬라이딩 윈도우 + path 갱신
