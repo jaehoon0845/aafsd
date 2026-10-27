@@ -1,5 +1,9 @@
 // ================================================================
-//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v16 - 전단 BLE 전송]
+//  스마트 인솔 - 오른발, 앱(PostureIQ) BLE 전송 [v17 - 피크 초기화 버그 수정]
+//
+//  v17 - 피크 초기화 플래그를 로드셀별로 분리.
+//        v14 는 전역 플래그를 루프 밖에서 무조건 세워, 첫 루프에 HX711 이
+//        변환 중이면 피크가 첫 측정값이 아니라 0 에서 누적되기 시작했다.
 //
 //  v16 - 전단/수직(자기장 유래)을 전용 특성 0xA0F5 로 전송.
 //        압력 패킷(0xA0F1)에 섞지 않는다 - 그 4칸은 압력 규약이라
@@ -149,11 +153,18 @@ bool hxRailed[LOAD_CELLS] = {false, false};  // 포화 여부
 //   눌렀다 떼도 그 사이 최대값이 화면에 남아 있어야 '반응했는지' 판단할 수 있다.
 float loadMin[LOAD_CELLS] = {0, 0};
 float loadMax[LOAD_CELLS] = {0, 0};
-bool  peakInit = false;                      // 첫 측정값으로 초기화했는지
+// [v17] 초기화 여부를 '로드셀별로' 관리한다.
+//   v14 는 전역 플래그 하나를 루프 밖에서 무조건 true 로 바꿨다. 그래서 첫 루프에
+//   HX711 이 아직 변환 중이라 아무 셀도 안 읽혔어도 '초기화 완료' 로 처리됐고,
+//   피크가 첫 측정값이 아니라 전역 초기값 0 에서 누적되기 시작했다.
+//   하중이 계속 음수면 최대값이 0 에 박혀 [-84245 ~ 0] 처럼 보인다.
+bool  peakInit[LOAD_CELLS] = {false, false};
 
 void resetPeaks() {
-  for (int i = 0; i < LOAD_CELLS; i++) { loadMin[i] = loadRaw[i]; loadMax[i] = loadRaw[i]; }
-  peakInit = true;
+  for (int i = 0; i < LOAD_CELLS; i++) {
+    loadMin[i] = loadMax[i] = loadRaw[i];
+    peakInit[i] = true;
+  }
   Serial.println("[피크] 초기화");
 }
 bool  mlxReady = false;                      // MLX90393 초기화 성공 여부
@@ -485,8 +496,10 @@ void loop() {
       //   v13 은 첫 측정 분기에서 peakInit 을 세우지 않아, p 를 누르기 전까지
       //   매 샘플마다 최소/최대가 현재값으로 리셋됐다 (항상 [X ~ X] 로 표시).
       //   첫 바퀴는 초기화만 하고, 그 다음부터 누적한다.
-      if (!peakInit) {
+      // [v17] 그 셀을 실제로 읽은 순간에만 초기화 완료로 표시한다.
+      if (!peakInit[i]) {
         loadMin[i] = loadMax[i] = loadRaw[i];
+        peakInit[i] = true;
       } else {
         if (loadRaw[i] < loadMin[i]) loadMin[i] = loadRaw[i];
         if (loadRaw[i] > loadMax[i]) loadMax[i] = loadRaw[i];
@@ -495,9 +508,6 @@ void loop() {
   }
 
   // ── 3) 두 하중의 차이 (부호 있음: 1번이 크면 양수) ──────────
-  // [v14] 모든 로드셀의 첫 측정이 끝났으면 이제부터 피크를 누적한다.
-  peakInit = true;
-
   float loadDiff = loadRaw[0] - loadRaw[1];
 
   // ── 4) 앱 전송용 8바이트 패킷 ──────────────────────────────
