@@ -309,7 +309,15 @@
       // 수직 하중.
       //   펌웨어가 채널마다 0~LOAD_MAX_G(=50kg) 를 0~1023 으로 스케일해서 보낸다.
       //   따라서 1 count = 50/1023 kg. 펌웨어의 LOAD_MAX_G 를 바꾸면 여기도 바꿔야 한다.
-      const KG_PER_COUNT = 50 / 1023;  // 펌웨어 LOAD_MAX_G = 실제 50kg 과 맞춤
+      // 기계적 감쇠 보상 계수 30배를 곱한 값.
+      //   로드셀이 에코플렉스로 고정되면서 가해진 힘의 일부만 센싱 빔에 전달된다.
+      //   (주먹으로 치는 정도의 힘에 0.6kg 만 측정됨 -> 대략 1/30 수준)
+      //   펌웨어 LOAD_MAX_G = 실제 1.6kg 이므로 1.6 * 30 = 48.
+      //   ★ 이 30배는 아는 무게로 검증한 값이 아니라 추정치다. 표시되는 kg 은
+      //     "센서 측정값"이 아니라 "감쇠를 보정한 추정값"이다.
+      //     정확한 값이 필요하면 아는 무게를 올려 계수를 다시 구해야 한다.
+      //     로드셀 고정을 고치면 이 보상 자체가 필요 없어진다.
+      const KG_PER_COUNT = 48 / 1023;
       const totalRaw = PostureIQ.sumFoot(r.left) + PostureIQ.sumFoot(r.right);
       const kg = totalRaw * KG_PER_COUNT;
       $('vertical-force').textContent = `${kg.toFixed(1)} kg`;
